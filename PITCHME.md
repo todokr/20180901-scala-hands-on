@@ -157,6 +157,7 @@ libraryDependencies ++= Seq(
 ```
 @[1](libraryDependencies ++= Seq({依存ライブラリをカンマ区切りで}))
 
+---
 
 # 早速つくりはじめよう
 
@@ -255,8 +256,9 @@ POST    /user/update                controllers.UserController.update
 # Mapping to /user/remove/<number>
 POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 ```
+@[1](`#` からはじまる行はコメント)
 @[2](`/user/list` へのGETリクエストは `controllers.UserController` クラスの `list` メソッドが処理する)
-@[4,5](`id` というクエリパラメータを受け取ります。クエリパラメータの型は `Option[Long]` で、デフォルトはNoneです)
+@[4,5](`id` というクエリパラメータを受け取る。クエリパラメータの型は `Option[Long]` で、デフォルトはNone)
 
 
 ---
@@ -296,7 +298,27 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 
 ---
 
+# 一覧ページを実装する
 
+---
+
+# 機能を追加してみよう
+- 一覧ページに、会員種別でフィルターする機能をつける
+- 会員種別ごとの人数が見られるページを作ってみよう
+
+そのためにまず「コレクション操作」を学びましょう
+
+---
+
+# コレクション操作に入門する
+
+---
+
+# 会員種別でフィルターしてみよう
+
+---
+
+# 会員種別ごとの人数が見られるページを作ってみよう
 
 
 
