@@ -32,10 +32,10 @@
 }
 
 .reveal pre {
-  font-size: 1em;
+  font-size: 0.6em;
 }
 
-p > code {
+.reveal p > code {
   font-family: monospace;
   background: #eee;
   text-transform: none;
