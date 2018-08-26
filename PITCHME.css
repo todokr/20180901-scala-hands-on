@@ -34,3 +34,14 @@
 .reveal pre {
   font-size: 1em;
 }
+
+.reveal code {
+  font-family: monospace;
+  background: #eee;
+  text-transform: none;
+  padding: .1em .2em;
+  border: 1px #aaa solid;
+  border-radius: 0.2em;
+  color: #c33;
+  font-size: .9em;
+}
