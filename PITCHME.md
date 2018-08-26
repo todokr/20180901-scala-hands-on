@@ -157,6 +157,7 @@ libraryDependencies ++= Seq(
 ```
 @[1](libraryDependencies ++= Seq({依存ライブラリをカンマ区切りで}))
 
+
 # 早速つくりはじめよう
 
 ---
@@ -172,12 +173,15 @@ libraryDependencies ++= Seq(
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 ```
 
+---
+
 # Bootstrapを使う準備(2)
 追加したら `localhost:9000` をリロードしてみましょう。 JavaScriptコンソールにエラーが出ているかと思います。
 これはPlayが提供している「セキュリティヘッダフィルタ」が、HTTPレスポンスに「同一生成元ではない」リソースを無効にするヘッダ(`Content-Security-Policy`)を付与しているためです。
 
 - [Playのセキュリティヘッダフィルタについてのドキュメント](https://www.playframework.com/documentation/2.6.x/SecurityHeaders)
 - [同一生成元ポリシーについて](https://developers.google.com/web/fundamentals/security/csp/)
+
 
 ---
 
@@ -221,10 +225,76 @@ class UserController @Inject()(controllerComponents: ControllerComponents)
   def delete(id: Long) = TODO
 }
 ```
+@[6](PlayFrameworkではControllerをclassとして実装します)
 @[6](`@Inject` アノテーションは、Dependency Injectionのためのもの)
 @[7](ControllerとなるClassは `AbstractController` を継承します)
 @[10](各ActionはScalaのメソッドとして定義します)
 @[10](`TODO` はPlayが提供している開発用お役立ちメソッドで、未実装なActionを表します)
+
+
+---
+
+# ルーティングの雛形を作る
+
+クライアントから送信されたリクエストは、 `conf/routes` の設定に従ってコントローラのメソッドへルーティングされます。
+以下の設定を追記します。
+
+```
+# Mapping to /user/list
+GET     /user/list                  controllers.UserController.list
+
+# Mapping to /user/edit or /user/edit?id=<number>
+GET     /user/edit                  controllers.UserController.edit(id: Option[Long] ?= None)
+
+# Mapping to /user/create
+POST    /user/create                controllers.UserController.create
+
+# Mapping to /user/update
+POST    /user/update                controllers.UserController.update
+
+# Mapping to /user/remove/<number>
+POST    /user/remove/:id            controllers.UserController.remove(id: Long)
+```
+@[2](`/user/list` へのGETリクエストは `controllers.UserController` クラスの `list` メソッドが処理する)
+@[4,5](`id` というクエリパラメータを受け取ります。クエリパラメータの型は `Option[Long]` で、デフォルトはNoneです)
+
+
+---
+
+# アクセスしてみよう
+- `localhost:9000/user/list` にアクセスしてみましょう
+- 未実装であることを示す紫色の画面が表示されればOKです
+
+---
+
+# Option[Long]の謎を解く
+`controllers.UserController.edit(id: Option[Long] ?= None)` は、ユーザーの新規登録と編集の両方に使います。
+
+||idが渡されない場合|| 空のフォームを表示|
+||idが渡された場合 ||idは編集したいユーザーのもの。ユーザーの情報がすでに埋め込まれたフォームを表示 |
+
+「idはあるかもしれないし、ないかもしれない」をコードで表現する必要があります。
+
+---
+
+# ないときはnull
+- Javaでよくあるのは「ないときはnull」
+- しかし、これはバグの元
+- 呼び出し元はnullチェック必要?必要じゃない?
+- NullPointerException
+
+---
+
+# 「あるかもしれないし、ないかもしれない」を表すのがOption
+- Optionとは「あるかもしれないし、ないかもしれない」を表す型
+- どのように使うのか、なぜうれしいのかを練習問題で感じてみよう！
+
+---
+
+# Option練習問題
+【いわまっちゃんお願いします】
+
+---
 
 
 
