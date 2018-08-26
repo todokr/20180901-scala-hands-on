@@ -269,6 +269,15 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 
 ---
 
+# DBの準備をする
+まずはユーザー一覧画面を実装していきましょう。しかしその前にデータベースを用意する必要があります。
+今回はMySQLをDockerから使います。プロジェクトのルートディレクトリに下記のような `docker-compose.yml` を用意します。
+
+```
+```
+
+---
+
 # Option[Long]の謎を解く
 `controllers.UserController.edit(id: Option[Long] ?= None)` は、ユーザーの新規登録と編集の両方に使います。
 
@@ -319,6 +328,8 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 ---
 
 # 会員種別ごとの人数が見られるページを作ってみよう
+
+---
 
 
 
