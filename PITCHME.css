@@ -26,7 +26,11 @@
 
 .reveal {
   font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","游ゴシック Medium",YuGothic,YuGothicM,"Hiragino Kaku Gothic ProN",メイリオ,Meiryo,sans-serif;
-  font-size: 36px;
+  font-size: 30px;
   font-weight: normal;
   color: #222;
+}
+
+.reveal pre {
+  font-size: 1em;
 }
