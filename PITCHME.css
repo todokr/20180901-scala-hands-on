@@ -35,7 +35,7 @@
   font-size: 1em;
 }
 
-.reveal code {
+p > code {
   font-family: monospace;
   background: #eee;
   text-transform: none;
