@@ -10,3 +10,23 @@
 
 .reveal h4 {
   font-size: 1em; }
+
+@font-face {
+  font-family: YuGothicM;
+  src: local("Yu Gothic Medium");
+}
+
+.reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","游ゴシック Medium",YuGothic,YuGothicM,"Hiragino Kaku Gothic ProN",メイリオ,Meiryo,sans-serif;
+  text-transform: none;
+  font-weight: bold;
+  text-shadow: none;
+  word-wrap: break-word;
+}
+
+.reveal {
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","游ゴシック Medium",YuGothic,YuGothicM,"Hiragino Kaku Gothic ProN",メイリオ,Meiryo,sans-serif;
+  font-size: 36px;
+  font-weight: normal;
+  color: #222;
+}
