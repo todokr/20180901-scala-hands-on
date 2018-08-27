@@ -270,6 +270,10 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 
 ---
 
+# ここまでのまとめ
+
+---
+
 # MySQLの準備をする(1)
 まずはユーザー一覧画面を実装していきましょう。しかしその前にデータベースを用意する必要があります。
 今回はMySQLをDockerから使います。プロジェクトのルートディレクトリに下記のような `docker-compose.yml` を用意します。
@@ -308,6 +312,9 @@ services:
 
 ```sql
 charset utf8mb4;
+
+CREATE USER 'root'@'%' IDENTIFIED BY '';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
 
 CREATE SCHEMA IF NOT EXISTS `play2_hands_on` DEFAULT CHARACTER SET utf8mb4;
 USE `play2_hands_on` ;
@@ -367,6 +374,67 @@ INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUE
 
 COMMIT;
 ```
+
+---
+
+# MySQLの準備をする(3)
+下記のようにSQLが叩けるようになったら準備OKです👍
+
+```
+mysql -h '127.0.0.1' -uroot -p
+Enter password: (Enterを押す)
+
+mysql> select count(*) from play2_hands_on.user;
++----------+
+| count(*) |
++----------+
+|        5 |
++----------+
+1 row in set (0.00 sec)
+
+```
+
+---
+
+# DBアクセスライブラリ「Slick」を導入する
+MySQLの準備ができたら、次はDBアクセスライブラリであるSlickを依存関係に追加しましょう。
+`build.sbt` のlibraryDependenciesに下記を追加してください。
+
+```
+"com.typesafe.play" %% "play-slick" % "3.0.1", // SlickのPlayFrameworkインテグレーション
+"com.typesafe.slick" %% "slick-codegen" % "3.2.0", // Modelの自動生成用ライブラリ
+```
+
+# Modelの自動生成用コードを用意する
+Slickが依存関係に追加されたら、Modelの自動生成用コードを用意してMySQLのスキーマからModelを自動生成します。
+`app/generator/SlickModelGen.scala` というファイルを用意し、下記のようにコードを書いていきます。
+
+```scala
+object SlickModelGen extends App {
+  SourceCodeGenerator.run(
+    profile = "slick.jdbc.MySQLProfile",
+    jdbcDriver = "com.mysql.cj.jdbc.Driver",
+    url = "jdbc:mysql://127.0.0.1:3306/play2_hands_on?useSSL=false&nullNamePatternMatchesAll=true",
+    outputDir = "./app",
+    pkg = "models",
+    user = Some("root"),
+    password = Some(""),
+    ignoreInvalidDefaults = true
+  )
+}
+
+```
+@[5](`App` トレイトを継承したObjectは単体で実行できます)
+
+___
+
+# Modelを自動生成する
+コードが用意できたらModelを自動生成してみましょう。
+IntelliJから `SlickModelGen` を実行します。
+
+![Appの実行](slide/run.png)
+
+`app/models/Tables.scala` が生成されたらOKです👍
 
 ---
 
