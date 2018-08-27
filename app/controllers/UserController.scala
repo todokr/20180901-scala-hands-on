@@ -1,13 +1,26 @@
 package controllers
 
-import com.google.inject.Inject
-import play.api.mvc.{AbstractController, ControllerComponents}
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
-class UserController @Inject()(controllerComponents: ControllerComponents)
-  extends AbstractController(controllerComponents) {
+import com.google.inject.Inject
+import models.Tables
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.mvc.{AbstractController, ControllerComponents}
+import slick.jdbc.JdbcProfile
+
+class UserController @Inject()(
+  controllerComponents: ControllerComponents,
+  val dbConfigProvider: DatabaseConfigProvider
+) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
+
+  import Tables.profile.api._
 
   // 一覧画面の表示
-  def list = TODO
+  def list = Action { implicit request =>
+    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
+    Ok(views.html.user.list(users))
+  }
 
   // 編集画面の表示
   def edit(id: Option[Long]) = TODO

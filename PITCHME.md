@@ -405,11 +405,17 @@ MySQLの準備ができたら、次はDBアクセスライブラリであるSlic
 "com.typesafe.slick" %% "slick-codegen" % "3.2.0", // Modelの自動生成用ライブラリ
 ```
 
+---
+
 # Modelの自動生成用コードを用意する
 Slickが依存関係に追加されたら、Modelの自動生成用コードを用意してMySQLのスキーマからModelを自動生成します。
 `app/generator/SlickModelGen.scala` というファイルを用意し、下記のようにコードを書いていきます。
 
 ```scala
+package generator
+
+import slick.codegen.SourceCodeGenerator
+
 object SlickModelGen extends App {
   SourceCodeGenerator.run(
     profile = "slick.jdbc.MySQLProfile",
@@ -438,11 +444,15 @@ IntelliJから `SlickModelGen` を実行します。
 
 ---
 
+# ユーザー一覧画面を実装する
+
+
 # Option[Long]の謎を解く
 `controllers.UserController.edit(id: Option[Long] ?= None)` は、ユーザーの新規登録と編集の両方に使います。
 
-||idが渡されない場合|| 空のフォームを表示|
-||idが渡された場合 ||idは編集したいユーザーのもの。ユーザーの情報がすでに埋め込まれたフォームを表示 |
+| idが渡されない場合 | idが渡された場合                                                               |
+|--------------------|--------------------------------------------------------------------------------|
+| 空のフォームを表示 | idは編集したいユーザーのもの。ユーザーの情報がすでに埋め込まれたフォームを表示 |
 
 「idはあるかもしれないし、ないかもしれない」をコードで表現する必要があります。
 
