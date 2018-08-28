@@ -1,8 +1,7 @@
 charset utf8mb4;
 
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
-SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+CREATE USER 'root'@'%' IDENTIFIED BY '';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
 
 CREATE SCHEMA IF NOT EXISTS `play2_hands_on` DEFAULT CHARACTER SET utf8mb4;
 USE `play2_hands_on` ;
@@ -41,10 +40,6 @@ CREATE UNIQUE INDEX `USER_ID_UNIQUE` ON `USER` (`USER_ID` ASC);
 CREATE INDEX `fk_USER_COMPANY_idx` ON `USER` (`COMPANY_ID` ASC);
 
 
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
 -- -----------------------------------------------------
 -- Data for table `COMPANY`
 -- -----------------------------------------------------
@@ -53,7 +48,6 @@ INSERT INTO `COMPANY` (`COMPANY_ID`, `COMPANY_NAME`) VALUES (1, '株式会社AAA
 INSERT INTO `COMPANY` (`COMPANY_ID`, `COMPANY_NAME`) VALUES (2, 'BBBコーポレーション');
 
 COMMIT;
-
 
 -- -----------------------------------------------------
 -- Data for table `USER`
