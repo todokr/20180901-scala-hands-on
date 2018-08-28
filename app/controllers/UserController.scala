@@ -4,17 +4,17 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 import com.google.inject.Inject
-import models.Tables
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.mvc.{AbstractController, ControllerComponents}
 import slick.jdbc.JdbcProfile
+
+import models.Tables
+import Tables.profile.api._
 
 class UserController @Inject()(
   controllerComponents: ControllerComponents,
   val dbConfigProvider: DatabaseConfigProvider
 ) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
-
-  import Tables.profile.api._
 
   // 一覧画面の表示
   def list = Action { implicit request =>

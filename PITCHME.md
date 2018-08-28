@@ -260,13 +260,11 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 @[2](`/user/list` へのGETリクエストは `controllers.UserController` クラスの `list` メソッドが処理する)
 @[4,5](`id` というクエリパラメータを受け取る。クエリパラメータの型は `Option[Long]` で、デフォルトはNone)
 
-
 ---
 
 # アクセスしてみよう
 - `localhost:9000/user/list` にアクセスしてみましょう
 - 未実装であることを示す紫色の画面が表示されればOKです
-- ここまでのコードは `01_controller-with-todo` ブランチにあります
 
 ---
 
@@ -445,7 +443,93 @@ IntelliJから `SlickModelGen` を実行します。
 ---
 
 # ユーザー一覧画面を実装する
+modelが生成できたので、ユーザー一覧画面を実装しましょう。
+アプリケーションの設計としてはあまり良くありませんが、まずはControllerにすべてのロジックを書いてしまいます。
 
+```scala
+package controllers
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+import com.google.inject.Inject
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.mvc.{AbstractController, ControllerComponents}
+import slick.jdbc.JdbcProfile
+
+import models.Tables
+import Tables.profile.api._
+
+class UserController @Inject()(
+  controllerComponents: ControllerComponents,
+  val dbConfigProvider: DatabaseConfigProvider
+) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
+  
+  // 一覧画面の表示
+  def list = Action { implicit request =>
+    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
+    Ok(views.html.user.list(users))
+  }
+
+  // 編集画面の表示
+  def edit(id: Option[Long]) = TODO
+
+  // 登録処理の実行
+  def create  = TODO
+
+  // 更新処理の実行
+  def update = TODO
+
+  // 削除処理の実行
+  def remove(id: Long) = TODO
+
+}
+```
+
+# DatabaseConfigProviderとHasDatabaseConfigProvider
+
+```scala
+...
+class UserController @Inject()(
+  controllerComponents: ControllerComponents,
+  val dbConfigProvider: DatabaseConfigProvider
+) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
+...
+```
+
+`DatabaseConfigProvider` インスタンスはデータベースアクセスを行うために必要になります。
+また、実際にデータベースにアクセスするためにはDIで上記のインスタンスを取得するだけでなく、 `HasDatabaseConfigProvider` トレイトをミックスインする必要があります。
+
+---
+
+# ユーザー一覧画面にアクセスしてみる
+再度、 `http://localhost:9000/user/list` にアクセスしてみましょう。下記のように一覧画面が表示されればOKです������
+
+![ユーザー一覧](slides/user-list.png)
+
+---
+
+
+# 機能を追加してみよう
+- 一覧ページに、会員種別でフィルターする機能をつける
+- 会員種別ごとの人数が見られるページを作ってみよう
+
+そのためにまず「コレクション操作」を学びましょう
+
+---
+
+# コレクション操作に入門する
+
+---
+
+# 会員種別でフィルターしてみよう
+
+---
+
+# 会員種別ごとの人数が見られるページを作ってみよう
+
+
+---
 
 # Option[Long]の謎を解く
 `controllers.UserController.edit(id: Option[Long] ?= None)` は、ユーザーの新規登録と編集の両方に使います。
@@ -479,25 +563,7 @@ IntelliJから `SlickModelGen` を実行します。
 
 # 一覧ページを実装する
 
----
 
-# 機能を追加してみよう
-- 一覧ページに、会員種別でフィルターする機能をつける
-- 会員種別ごとの人数が見られるページを作ってみよう
-
-そのためにまず「コレクション操作」を学びましょう
-
----
-
-# コレクション操作に入門する
-
----
-
-# 会員種別でフィルターしてみよう
-
----
-
-# 会員種別ごとの人数が見られるページを作ってみよう
 
 ---
 
