@@ -7,7 +7,7 @@
 GET     /                           controllers.HomeController.index
 
 # Mapping to /user/list
-GET     /user/list                  controllers.UserController.list
+GET     /user/list                  controllers.UserController.list(authority: Option[String] ?= None)
 
 # Mapping to /user/edit or /user/edit?id=<number>
 GET     /user/edit                  controllers.UserController.edit(id: Option[Long] ?= None)

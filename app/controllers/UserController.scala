@@ -17,9 +17,16 @@ class UserController @Inject()(
 ) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
 
   // 一覧画面の表示
-  def list = Action { implicit request =>
+  def list(authority: Option[String]) = Action { implicit request =>
     val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
-    Ok(views.html.user.list(users))
+
+    val result = if (authority.isDefined) {
+      users.filter(_.authority == authority.get.toUpperCase)
+    } else {
+      users
+    }
+
+    Ok(views.html.user.list(result))
   }
 
   // 編集画面の表示

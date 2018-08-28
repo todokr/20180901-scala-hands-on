@@ -519,26 +519,53 @@ class UserController @Inject()(
 ---
 
 # コレクション操作に入門する
+- map, filter, collect
+(いわまっちゃんお願いします)
 
 ---
 
-# 会員種別でフィルターしてみよう
+# ユーザー種別でフィルターしてみよう
+DBのuserテーブルのAUTHORITYカラムには「ADMIN」「EDITOR」「READONLY」の3種類のユーザー種別があります。
+アプリケーションを改修し、一覧画面において特定のユーザーだけを表示できるようにしてみましょう。
+
+具体的には、
+- `http://localhost/user/list?authority=admin` のときは、「ADMIN」のユーザーだけの一覧を表示
+- `http://localhost/user/list?authority=editor` のときは、「EDITOR」のユーザーだけの一覧を表示
+- `http://localhost/user/list?authority=readonly` のときは、「READONLY」のユーザーだけの一覧を表示
+- それ以外のときは、全ユーザー種別の一覧を表示
+---
+とします。
 
 ---
 
-# 会員種別ごとの人数が見られるページを作ってみよう
+# クエリパラメータをControllerで受け取れるようにする(1)
+フィルタリングを行うためには、 `http://localhost/user/list?authority=admin` の `?authority=admin` のようにクエリパラメータとして渡している情報をControllerで受け取れるようにする必要があります。
+まずは `conf/route` のユーザー一覧用ルーティングを下記のように修正します。
 
+```
+# Mapping to /user/list
+GET  /user/list  controllers.UserController.list(authority: Option[String] ?= None)
+```
 
 ---
 
-# Option[Long]の謎を解く
-`controllers.UserController.edit(id: Option[Long] ?= None)` は、ユーザーの新規登録と編集の両方に使います。
+# クエリパラメータをControllerで受け取れるようにする(2)
+続いてControllerのlistメソッドに引数ブロックを追加します。
 
-| idが渡されない場合 | idが渡された場合                                                               |
-|--------------------|--------------------------------------------------------------------------------|
-| 空のフォームを表示 | idは編集したいユーザーのもの。ユーザーの情報がすでに埋め込まれたフォームを表示 |
+```scala
+// 一覧画面の表示
+  def list(authority: Option[String]) = Action { implicit request =>
+```
 
-「idはあるかもしれないし、ないかもしれない」をコードで表現する必要があります。
+これで `?authority=XXX` とリクエストが来た場合に、Controllerで `XXX` を受け取れるようになります。
+
+---
+
+# Option[String]の謎を解く
+`Option[String]` という見慣れない型について見ていきましょう。
+
+`?authority=XXX` のクエリパラメータはURLに含まれることもあれば、含まれないこともあります。
+「存在するかもしれないし、しないかもしれない」を表現する必要があるわけです。
 
 ---
 
@@ -550,14 +577,46 @@ class UserController @Inject()(
 
 ---
 
-# 「あるかもしれないし、ないかもしれない」を表すのがOption
+# 「あるかもしれないし、ないかもしれない」を表す型がOption
 - Optionとは「あるかもしれないし、ないかもしれない」を表す型
 - どのように使うのか、なぜうれしいのかを練習問題で感じてみよう！
 
 ---
 
+# Optionに入門する
+(いわまっちゃんお願いします)
+
+---
+
+# 受け取った
+
+```scala
+  // 一覧画面の表示
+  def list(authority: Option[String]) = Action { implicit request =>
+    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
+
+    val result = if (authority.isDefined) { 
+      users.filter(_.authority == authority.get.toUpperCase)
+    } else {
+      users
+    }
+
+    Ok(views.html.user.list(result))
+  }
+
+```
+
+---
+
+
 # Option練習問題
 【いわまっちゃんお願いします】
+
+
+
+# 会員種別ごとの人数が見られるページを作ってみよう
+
+
 
 ---
 
