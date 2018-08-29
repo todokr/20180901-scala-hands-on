@@ -20,11 +20,9 @@ class UserController @Inject()(
   def list(authority: Option[String]) = Action { implicit request =>
     val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
 
-    val result = if (authority.isDefined) {
-      users.filter(_.authority == authority.get.toUpperCase)
-    } else {
-      users
-    }
+    val result = authority.map { a =>
+      users.filter(_.authority == a.toUpperCase)
+    }.getOrElse(users)
 
     Ok(views.html.user.list(result))
   }

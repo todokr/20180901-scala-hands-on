@@ -588,7 +588,9 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 
 ---
 
-# 受け取った
+# 受け取ったクエリパラメータでユーザーをフィルタリングする
+Controllerが受け取った `authority` がSomeなら中身の文字列を使ってフィルタリング、
+Noneならフィルタリングしないそのままの結果を使うように改修してみましょう。
 
 ```scala
   // 一覧画面の表示
@@ -604,6 +606,16 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
     Ok(views.html.user.list(result))
   }
 
+```
+
+---
+
+# フィルタリング処理をリファクタしてみよう
+
+```scala
+val result = authority.map { a =>
+  users.filter(_.authority == a.toUpperCase)
+}.getOrElse(users)
 ```
 
 ---
