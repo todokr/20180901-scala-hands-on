@@ -18,10 +18,7 @@ class FutureTrainingSpec extends WordSpec with MustMatchers {
   }
 
   def doFailure() = {
-    (0 until 3).foreach { _ =>
-      Thread.sleep(1000)
-    }
-    throw new Exception("Lucky!")
+    throw new Exception("Failed!")
   }
 
   /**
@@ -93,17 +90,10 @@ class FutureTrainingSpec extends WordSpec with MustMatchers {
 
   /**
     * FIXME
-    * - Futureの実行が失敗しても霊芸とならないようにしてみよう
+    * - Future内での例外をonCompleteで拾い、例外メッセージを表示してみよう
     */
   def doTaskSafety() = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    Future { doFailure() }
-    // Future { doFailure() } onComplete {
-    //   case scala.util.Failure(t) =>
-    //     println(t.getMessage)
-    //   case _ =>
-    // }
-    Thread.sleep(4000)
+    ???
   }
 
   "Future" must {
@@ -114,7 +104,7 @@ class FutureTrainingSpec extends WordSpec with MustMatchers {
       // useFixedThreadPool(5)
       // useFixedThreadPool(10)
       // useCachedThreadPool()
-      doTaskSafety()
+      // doTaskSafety()
     }
   }
 }
