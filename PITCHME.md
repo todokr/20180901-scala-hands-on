@@ -269,6 +269,11 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 
 # ここまでのまとめ
 
+- ControllerはAbstractControllerを継承したclassとして実装する
+- 各Actionはメソッドとして実装する
+- 未実装のActionは `TODO` としておける
+- ルーティング設定は `conf/routes` で行う
+  
 ---
 
 # MySQLの準備をする(1)
@@ -430,7 +435,7 @@ object SlickModelGen extends App {
 }
 
 ```
-@[5](`App` トレイトを継承したObjectは単体で実行できます)
+@[5](`App` traitを継承したObjectは単体で実行できます)
 
 ---
 
@@ -444,6 +449,14 @@ IntelliJから `SlickModelGen` を実行します。
 
 ---
 
+# ここまでのまとめ
+
+- SlickはScalaのDBアクセスライブラリ
+- DBのスキーマからModelを自動生成できる
+- `App` traitを継承したobjectは単体で実行できる
+
+---
+
 # ユーザー一覧画面を実装する
 modelが生成できたので、ユーザー一覧画面を実装しましょう。
 アプリケーションの設計としてはあまり良くありませんが、まずはControllerにすべてのロジックを書いてしまいます。
@@ -453,6 +466,7 @@ package controllers
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.concurrent.Future
 
 import com.google.inject.Inject
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -460,16 +474,21 @@ import play.api.mvc.{AbstractController, ControllerComponents}
 import slick.jdbc.JdbcProfile
 
 import models.Tables
+import models.Tables._
 import Tables.profile.api._
 
 class UserController @Inject()(
   controllerComponents: ControllerComponents,
   val dbConfigProvider: DatabaseConfigProvider
 ) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
-  
+
   // 一覧画面の表示
-  def list = Action { implicit request =>
-    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
+  def list(authority: Option[String]) = Action { implicit request =>
+
+    val dbioAction: DBIO[Seq[UserRow]] = User.sortBy(_.userId).result
+    val futureResult: Future[Seq[UserRow]] = db.run(dbioAction)
+    val users: Seq[UserRow] = Await.result(futureResult, Duration.Inf)
+
     Ok(views.html.user.list(users))
   }
 
@@ -487,6 +506,9 @@ class UserController @Inject()(
 
 }
 ```
+@[27](DBにどのように問い合わせるかを定義。 `UserRow` はuserテーブルの1レコードを表す)
+@[28](DBに実際に問い合わせを実行。返り値の型はFuture)
+@[29](`Await.result()` でFutureが完了するのを待ち、結果を `UserRow` のコレクションとして取得)
 
 ---
 
@@ -502,7 +524,7 @@ class UserController @Inject()(
 ```
 
 `DatabaseConfigProvider` インスタンスはデータベースアクセスを行うために必要になります。
-また、実際にデータベースにアクセスするためにはDIで上記のインスタンスを取得するだけでなく、 `HasDatabaseConfigProvider` トレイトをミックスインする必要があります。
+また、実際にデータベースにアクセスするためにはDIで上記のインスタンスを取得するだけでなく、 `HasDatabaseConfigProvider` traitをミックスインする必要があります。
 
 ---
 
@@ -513,6 +535,15 @@ class UserController @Inject()(
 
 ---
 
+# ここまでのまとめ
+- Slickは「どのようにDBに問い合わせるか」と「実際のDBへの問い合わせ」を分離している
+  - `DBIO` は「DBにどのように問い合わせるか」を表す型
+  - `db.run(...)` は実際のDBへの問い合わせ
+  - 実はここに関数型のエッセンスが隠れている...！が詳しくは後ほど
+- `db.run(...)` の返り値は `Future` で、これは「引換券」のようなもの。これも後ほど詳しく
+- DBアクセスをするためには `DatabaseConfigProvider` のインスタンスを取得し、`HasDatabaseConfigProvider` をミックスインする
+
+---
 
 # 機能を追加してみよう
 一覧ページに、ユーザー種別でフィルターする機能を追加しましょう。
@@ -596,7 +627,7 @@ Noneならフィルタリングしないそのままの結果を使うように�
 ```scala
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
-    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
+    val users = Await.result(db.run(User.sortBy(_.userId).result), Duration.Inf)
 
     val result = if (authority.isDefined) { 
       users.filter(_.authority == authority.get.toUpperCase)
@@ -637,8 +668,8 @@ Slickは極力Scalaのコレクションと同じように操作できるよう�
 def list(authority: Option[String]) = Action { implicit request =>
   val dbAction = authority.map { a =>
     // authorityがSomeのときはその値を使ってフィルタリングする
-    Tables.User.filter(_.authority === a.bind).sortBy(_.userId).result
-  }.getOrElse(Tables.User.sortBy(_.userId).result)
+    User.filter(_.authority === a.bind).sortBy(_.userId).result
+  }.getOrElse(User.sortBy(_.userId).result)
 
   val result = Await.result(db.run(dbAction), Duration.Inf)
 
@@ -651,7 +682,7 @@ def list(authority: Option[String]) = Action { implicit request =>
 # Slickでフィルタリングしよう(3)
 
 ```scala
-Tables.User.filter(_.authority === a.bind).sortBy(_.userId).result
+User.filter(_.authority === a.bind).sortBy(_.userId).result
 ```
 
 - コレクション操作と同じように `filter` ができます
@@ -666,6 +697,11 @@ Tables.User.filter(_.authority === a.bind).sortBy(_.userId).result
 - SQLインジェクションの防止
 
 詳しくはこちらの記事がおすすめ: https://www.ibm.com/developerworks/jp/security/library/se-bindvariables/index.html
+
+---
+
+# ここまでのまとめ
+
 
 ---
 
