@@ -178,7 +178,7 @@ build.sbtを下記のように変更してください。
 
 ```
 libraryDependencies += guice
-libraryDependencies += "mysql" % "mysql-connector-java" % "6.0.6" // 追加
+libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.47" // 追加
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 ```
 
@@ -190,7 +190,7 @@ libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2
 ```
 libraryDependencies ++= Seq(
   guice,
-  "mysql" % "mysql-connector-java" % "6.0.6",
+  "mysql" % "mysql-connector-java" % "5.1.47",
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 )
 
@@ -243,11 +243,13 @@ play.filters.headers.contentSecurityPolicy = "script-src 'self' netdna.bootstrap
 ```scala
 package controllers
 
-import com.google.inject.Inject
-import play.api.mvc.{AbstractController, ControllerComponents}
+import play.api.mvc._
+import play.api.data._
+import play.api.data.Forms._
+import javax.inject.Inject
 
-class UserController @Inject()(controllerComponents: ControllerComponents)
-  extends AbstractController(controllerComponents) {
+class UserController @Inject()(components: MessagesControllerComponents)
+  extends MessagesAbstractController(components) {
 
   // 一覧画面の表示
   def list = TODO
@@ -265,11 +267,12 @@ class UserController @Inject()(controllerComponents: ControllerComponents)
   def delete(id: Long) = TODO
 }
 ```
-@[6](PlayFrameworkではControllerをclassとして実装します)
-@[6](`@Inject` アノテーションは、Dependency Injectionのためのもの)
-@[7](ControllerとなるClassは `AbstractController` を継承します)
-@[10](各ActionはScalaのメソッドとして定義します)
-@[10](`TODO` はPlayが提供している開発用お役立ちメソッドで、未実装なActionを表します)
+@[8](PlayFrameworkではControllerをclassとして実装します)
+@[8](@Injectアノテーションと2つの引数が定義されていますが、これはPlay 2.4から導入されたGoogle GuiceによるDI機能を使用するためのもの)
+@[9](ControllerとなるClassは `MessagesAbstractController` を継承します)
+@[9](MessagesControllerComponents: Playの国際化機能を使用するために必要)
+@[12](各ActionはScalaのメソッドとして定義します)
+@[12](`TODO` はPlayが提供している開発用お役立ちメソッドで、未実装なActionを表します)
 
 
 ---
@@ -367,55 +370,54 @@ USE `play2_hands_on` ;
 -- -----------------------------------------------------
 -- Table `COMPANY`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `COMPANY` (
-  `COMPANY_ID` BIGINT NOT NULL AUTO_INCREMENT,
-  `COMPANY_NAME` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`COMPANY_ID`))
+CREATE TABLE IF NOT EXISTS `company` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `COMPANY_ID_UNIQUE` ON `COMPANY` (`COMPANY_ID` ASC);
+CREATE UNIQUE INDEX `id_unique` ON `company` (`id` ASC);
 
 
 -- -----------------------------------------------------
--- Table `USER`
+-- Table `user`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `USER` (
-  `USER_ID` BIGINT NOT NULL AUTO_INCREMENT,
-  `NAME` VARCHAR(45) NOT NULL,
-  `EMAIL` VARCHAR(255) NOT NULL,
-  `AUTHORITY` VARCHAR(45) NOT NULL,
-  `COMPANY_ID` BIGINT NOT NULL,
-  PRIMARY KEY (`USER_ID`, `COMPANY_ID`),
-  CONSTRAINT `fk_USER_COMPANY`
-    FOREIGN KEY (`COMPANY_ID`)
-    REFERENCES `COMPANY` (`COMPANY_ID`)
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `authority` VARCHAR(45) NOT NULL,
+  `company_id` BIGINT NOT NULL,
+  PRIMARY KEY (`id`, `company_id`),
+  CONSTRAINT `fk_user_company`
+    FOREIGN KEY (`company_id`)
+    REFERENCES `company` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `USER_ID_UNIQUE` ON `USER` (`USER_ID` ASC);
+CREATE UNIQUE INDEX `id_unique` ON `user` (`id` ASC);
 
-CREATE INDEX `fk_USER_COMPANY_idx` ON `USER` (`COMPANY_ID` ASC);
-
+CREATE INDEX `fk_user_company_idx` ON `user` (`company_id` ASC);
 
 -- -----------------------------------------------------
--- Data for table `COMPANY`
+-- Data for table `company`
 -- -----------------------------------------------------
 START TRANSACTION;
-INSERT INTO `COMPANY` (`COMPANY_ID`, `COMPANY_NAME`) VALUES (1, '株式会社AAA');
-INSERT INTO `COMPANY` (`COMPANY_ID`, `COMPANY_NAME`) VALUES (2, 'BBBコーポレーション');
+INSERT INTO `company` (`id`, `name`) VALUES (1, '株式会社AAA');
+INSERT INTO `company` (`id`, `name`) VALUES (2, 'BBBコーポレーション');
 
 COMMIT;
 
 -- -----------------------------------------------------
--- Data for table `USER`
+-- Data for table `user`
 -- -----------------------------------------------------
 START TRANSACTION;
-INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUES (1, '田中 太郎', 'tanaka@example.com', 'ADMIN', 1);
-INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUES (2, '鈴木 次郎', 'suzuki@example.com', 'READONLY', 1);
-INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUES (3, '佐藤 三郎', 'sato@example.com', 'EDITOR', 1);
-INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUES (4, '藤原 四郎', 'fujiwara@example.com', 'EDITOR', 2);
-INSERT INTO `USER` (`USER_ID`, `NAME`, `EMAIL`, `AUTHORITY`, `COMPANY_ID`) VALUES (5, '野口 五郎', 'noguchi@example.com', 'READONLY', 2);
+INSERT INTO `user` (`id`, `name`, `email`, `authority`, `company_id`) VALUES (1, '田中 太郎', 'tanaka@example.com', 'ADMIN', 1);
+INSERT INTO `user` (`id`, `name`, `email`, `authority`, `company_id`) VALUES (2, '鈴木 次郎', 'suzuki@example.com', 'READONLY', 1);
+INSERT INTO `user` (`id`, `name`, `email`, `authority`, `company_id`) VALUES (3, '佐藤 三郎', 'sato@example.com', 'EDITOR', 1);
+INSERT INTO `user` (`id`, `name`, `email`, `authority`, `company_id`) VALUES (4, '藤原 四郎', 'fujiwara@example.com', 'EDITOR', 2);
+INSERT INTO `user` (`id`, `name`, `email`, `authority`, `company_id`) VALUES (5, '野口 五郎', 'noguchi@example.com', 'READONLY', 2);
 
 COMMIT;
 ```
@@ -449,7 +451,7 @@ MySQLの準備ができたら、次はDBアクセスライブラリであるScal
 
 libraryDependencies ++= Seq(
   guice,
-  "mysql" % "mysql-connector-java" % "6.0.6",
+  "mysql" % "mysql-connector-java" % "5.1.47",
   "org.scalikejdbc" %% "scalikejdbc" % "3.2.2", // 追加
   "org.scalikejdbc" %% "scalikejdbc-config" % "3.2.2", // 追加
   "org.scalikejdbc" %% "scalikejdbc-play-initializer" % "2.6.0-scalikejdbc-3.2", // 追加
@@ -459,75 +461,176 @@ libraryDependencies ++= Seq(
 
 ---
 
-# Modelの自動生成用コードを用意する
-Slickが依存関係に追加されたら、Modelの自動生成用コードを用意してMySQLのスキーマからModelを自動生成します。
-`app/generator/SlickModelGen.scala` というファイルを用意し、下記のようにコードを書いていきます。
+# Modelを自動生成する(1)
+ScalikeJDBCではタイプセーフなAPIを使用するためにモデルクラスを用意する必要がありますが、ScalikeJDBCがsbtプラグインとして提供しているジェネレータを使用することでモデルクラスをDBスキーマから自動生成することができます。
 
-```scala
-package generator
-
-import slick.codegen.SourceCodeGenerator
-
-object SlickModelGen extends App {
-  SourceCodeGenerator.run(
-    profile = "slick.jdbc.MySQLProfile",
-    jdbcDriver = "com.mysql.cj.jdbc.Driver",
-    url = "jdbc:mysql://127.0.0.1:3306/play2_hands_on?useSSL=false&nullNamePatternMatchesAll=true",
-    outputDir = "./app",
-    pkg = "models",
-    user = Some("root"),
-    password = Some(""),
-    ignoreInvalidDefaults = true
-  )
-}
+まずはsbtプラグインを依存関係に追加します。  
+`project/plugins.sbt` に以下の設定を追加してください。
 
 ```
-@[5](`App` traitを継承したObjectは単体で実行できます)
+libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.47"
+addSbtPlugin("org.scalikejdbc" %% "scalikejdbc-mapper-generator" % "3.2.2")
+```
 
 ---
 
-# Modelを自動生成する
-コードが用意できたらModelを自動生成してみましょう。
-IntelliJから `SlickModelGen` を実行します。
+# Modelを自動生成する(2)
 
-![Appの実行](slide/run.png)
+続いて、 `project/scalikejdbc.properties` というファイルを以下の内容で作成します。
 
-`app/models/Tables.scala` が生成されたらOKです👍
+```
+# ---
+# jdbc settings
+
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://127.0.0.1:3306/play2_hands_on?useSSL=false&nullNamePatternMatchesAll=true
+jdbc.username=root
+jdbc.password=
+jdbc.schema=
+
+# ---
+# source code generator settings
+
+generator.packageName=models
+# generator.lineBreak: LF/CRLF
+generator.lineBreak=LF
+# generator.template: interpolation/queryDsl
+generator.template=queryDsl
+# generator.testTemplate: specs2unit/specs2acceptance/ScalaTestFlatSpec
+generator.testTemplate=ScalaTestFlatSpec
+generator.encoding=UTF-8
+# When you're using Scala 2.11 or higher, you can use case classes for 22+ columns tables
+generator.caseClassOnly=true
+# Set AutoSession for implicit DBSession parameter's default value
+generator.defaultAutoSession=true
+# Use autoConstruct macro (default: false)
+generator.autoConstruct=false
+# joda-time (org.joda.time.DateTime) or JSR-310 (java.time.ZonedDateTime java.time.OffsetDateTime)
+generator.dateTimeClass=java.time.OffsetDateTime
+```
+
+---
+
+# Modeを自動生成する(3)
+最後に `build.sbt` に以下の記述を追加します。これでModeの自動生成を行うscalikejdbcGenタスクが使用できるようになります。
+
+```
+enablePlugins(ScalikejdbcPlugin)
+```
+
+---
+
+# Modelを自動生成する(4)
+ではコードを自動生成してみましょう。`play2-hands-on`プロジェクトのルートディレクトリで以下のコマンドを実行します。
+
+```sh
+sbt "scalikejdbcGenAll"
+```
+
+するとplay2-hands-onプロジェクトの `app/models` パッケージに `Company` と `User` の2つのモデルクラスが生成されます。
+
+---
+
+# DB接続の設定
+`play2-hands-on` プロジェクトの `conf/application.conf` に以下の設定を追加します。  
+データベースの接続情報に加え、PlayとScalikeJDBCを連携させるための設定が含まれています。
+
+```
+
+db.default.driver=com.mysql.jdbc.Driver
+db.default.url="jdbc:mysql://127.0.0.1:3306/play2_hands_on?useSSL=false&nullNamePatternMatchesAll=true"
+db.default.username=root
+db.default.password=""
+
+scalikejdbc.global.loggingSQLAndTime.enabled=true
+scalikejdbc.global.loggingSQLAndTime.singleLineMode=false
+scalikejdbc.global.loggingSQLAndTime.logLevel=debug
+scalikejdbc.global.loggingSQLAndTime.warningEnabled=true
+scalikejdbc.global.loggingSQLAndTime.warningThresholdMillis=5
+scalikejdbc.global.loggingSQLAndTime.warningLogLevel=warn
+
+play.modules.enabled += "scalikejdbc.PlayModule"
+# scalikejdbc.PlayModule doesn't depend on Play's DBModule
+play.modules.disabled += "play.api.db.DBModule"
+```
 
 ---
 
 # ここまでのまとめ
 
-- SlickはScalaのDBアクセスライブラリ
-- DBのスキーマからModelを自動生成できる
-- `App` traitを継承したobjectは単体で実行できる
+- ScalikeJDBCはScalaのDBアクセスライブラリ
+- scalikejdbcGenAllタスクでDBのスキーマからModelを自動生成できる
 
 ---
 
-# ユーザー一覧画面を実装する
+# ユーザー一覧画面を実装する(1)
 modelが生成できたので、ユーザー一覧画面を実装しましょう。
+テンプレートはviewsパッケージに作成します。`app` ディレクトリ配下に `views.user` パッケージを作成し、以下の内容で `list.scala.html` を作成します。
+
+```html
+@* このテンプレートの引数 *@
+@(users: Seq[models.User])(implicit request: RequestHeader)
+
+@* テンプレートで利用可能なヘルパーをインポート *@
+@import helper._
+
+@* main.scala.htmlを呼び出す *@
+@main("ユーザ一覧") {
+
+<div>
+  <a href="@routes.UserController.edit()" class="btn btn-success" role="button">新規作成</a>
+</div>
+
+<div class="col-xs-6">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>名前</th>
+        <th>&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody>
+    @* ユーザの一覧をループで出力 *@
+    @users.map { user =>
+      <tr>
+        <td>@user.id</td>
+        <td><a href="@routes.UserController.edit(Some(user.id))">@user.name</a></td>
+        <td>@helper.form(CSRF(routes.UserController.remove(user.id))){
+          <input type="submit" value="削除" class="btn btn-danger btn-xs"/>
+        }
+        </td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>
+
+}
+```
+@[1](`@* ... *@`で囲まれな内容はコメントです)
+@[2](テンプレートの最初にはコントローラから受け取る引数を記述します)
+@[5](@importでインポート文を記述することができます。@import helper._でPlayが提供する標準ヘルパー（フォームなどを出力する関数）をインポートしています)
+@[11](リンクやフォームのURLは、@routes.・・・と記述することでルーティングから生成することができます)
+@[29](デフォルトでCSRFフィルタが有効になっているため、フォームの送信先はCSRF(...)で囲む必要があります)
+
+---
+
+# ユーザー一覧画面を実装する(2)
 アプリケーションの設計としてはあまり良くありませんが、まずはControllerにすべてのロジックを書いてしまいます。
 
 ```scala
 package controllers
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.concurrent.Future
+import play.api.mvc._
+import play.api.data._
+import play.api.data.Forms._
+import javax.inject.Inject
+import scalikejdbc._
+import models._
 
-import com.google.inject.Inject
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.mvc.{AbstractController, ControllerComponents}
-import slick.jdbc.JdbcProfile
-
-import models.Tables
-import models.Tables._
-import Tables.profile.api._
-
-class UserController @Inject()(
-  controllerComponents: ControllerComponents,
-  val dbConfigProvider: DatabaseConfigProvider
-) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
+class UserController @Inject()(components: MessagesControllerComponents)
+  extends MessagesAbstractController(components) {
 
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
@@ -556,22 +659,6 @@ class UserController @Inject()(
 @[27](DBにどのように問い合わせるかを定義。 `UserRow` はuserテーブルの1レコードを表す)
 @[28](DBに実際に問い合わせを実行。返り値の型はFuture)
 @[29](`Await.result()` でFutureが完了するのを待ち、結果を `UserRow` のコレクションとして取得)
-
----
-
-# DatabaseConfigProviderとHasDatabaseConfigProvider
-
-```scala
-...
-class UserController @Inject()(
-  controllerComponents: ControllerComponents,
-  val dbConfigProvider: DatabaseConfigProvider
-) extends AbstractController(controllerComponents) with HasDatabaseConfigProvider[JdbcProfile] {
-...
-```
-
-`DatabaseConfigProvider` インスタンスはデータベースアクセスを行うために必要になります。
-また、実際にデータベースにアクセスするためにはDIで上記のインスタンスを取得するだけでなく、 `HasDatabaseConfigProvider` traitをミックスインする必要があります。
 
 ---
 

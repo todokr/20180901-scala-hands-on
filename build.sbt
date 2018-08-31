@@ -9,12 +9,14 @@ scalaVersion := "2.12.6"
 
 libraryDependencies ++= Seq(
   guice,
-  "mysql" % "mysql-connector-java" % "6.0.6",
+  "mysql" % "mysql-connector-java" % "5.1.47",
   "org.scalikejdbc" %% "scalikejdbc" % "3.2.2",
   "org.scalikejdbc" %% "scalikejdbc-config" % "3.2.2",
   "org.scalikejdbc" %% "scalikejdbc-play-initializer" % "2.6.0-scalikejdbc-3.2",
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 )
+
+enablePlugins(ScalikejdbcPlugin)
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"
