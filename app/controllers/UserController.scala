@@ -23,8 +23,13 @@ class UserController @Inject()(components: MessagesControllerComponents)
     DB.readOnly { implicit session =>
       // ユーザのリストを取得
       val users = withSQL {
-        select.from(User as u).where(where).orderBy(u.id.asc)
-      }.map(User(u.resultName)).list.apply()
+        select
+          .from(User as u).leftJoin(Company as c).on(u.companyId, c.id)
+          .where(where)
+          .orderBy(u.id.asc)
+      }.map { rs =>
+        (User(u)(rs), rs.intOpt(c.resultName.id).map(_ => Company(c)(rs)))
+      }.list.apply()
 
       // 一覧画面を表示
       Ok(views.html.user.list(users))
@@ -76,6 +81,7 @@ class UserController @Inject()(components: MessagesControllerComponents)
   // 更新処理の実行
   def update = Action { implicit request =>
     DB.localTx { implicit session =>
+
       // リクエストの内容をバインド
       userForm.bindFromRequest.fold(
         // エラーの場合は編集画面に戻す

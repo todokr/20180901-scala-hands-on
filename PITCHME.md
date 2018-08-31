@@ -683,9 +683,9 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 ```scala
 // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
-    println("************************)
+    println("************************")
     println(authority)
-    println("************************)
+    println("************************")
 ```
 
 これで `?authority=XXX` とリクエストが来た場合に、Controllerで `XXX` を受け取れるようになります。
@@ -694,14 +694,14 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 
 # Option[String]の謎を解く
 `Option[String]` という見慣れない型について見ていきましょう。  
-`?authority=XXX` のクエリパラメータはURLに含まれることもあれば、含まれないこともあります。
-「存在するかもしれないし、しないかもしれない」を表現する必要があるわけです。
+`?authority=XXX` のクエリパラメータはURLに含まれることもあれば、含まれないこともあります。  
+ということは、「authorityの値は存在するかもしれないし、しないかもしれない」を表現する必要があるわけです。
 
 ---
 
 # ないときはnull
 - Javaでよくあるのは「ないときはnull」
-- しかし、これはバグの元
+- しかし、これはバグの温床
 - 呼び出し元はnullチェック必要?必要じゃない?
 - NullPointerException
 
@@ -764,7 +764,7 @@ val where: Option[SQLSyntax] = authority.map(a => sqls"${u.authority} = $a")
 ---
 
 # ユーザ登録・編集画面の実装
-リクエストパラメータにIDが指定されているかどうかに応じて以下の処理を行います。
+リクエストURLのクエリパラメータにユーザーIDが指定されているかどうかに応じて以下の処理を行います。
 
 - `/user/edit` ⇒ 新規登録画面を表示します。
 - `/user/edit?id=XXX` ⇒ USERSテーブルを検索し、該当のユーザ情報を初期表示した編集画面を表示します。
@@ -851,7 +851,7 @@ object UserController {
 ---
 
 # Controllerの実装
-最後にUserControllerの `edit` メソッドを実装します。引数idが指定されていた場合は空のForm、指定されていた場合はForm#fillメソッドでFormに初期表示する値をセットしたうえでテンプレートを呼び出すようにします。
+最後にUserControllerの `edit` メソッドを実装します。引数idが指定されていた場合は空のForm、指定されていた場合は `Form#fill` メソッドでFormに初期表示する値をセットしたうえでテンプレートを呼び出すようにします。
 
 
 ```scala
@@ -899,17 +899,20 @@ class UserController @Inject()(components: MessagesControllerComponents)
 
 ちなみにこのメソッドをQueryDSLで書き直すと以下のようになります。
 
-```
+```scala
 // 1件検索をQueryDSLで書き直した場合
 withSQL {
-  select.from(Users as u).where.eq(u.id, id)
-}.map(Users(u.resultName)).single.apply()
+  select.from(User as u).where.eq(u.id, id)
+}.map(User(u.resultName)).single.apply()
 ```
 
 ---
 
 # ブラウザから確認
 ここまで実装したらブラウザで一覧画面から新規作成やユーザ名のリンクをクリックし、登録画面と編集画面が表示されることを確認します。
+
+![register](slide/register_form.png)
+![edit](slide/edit_form.png)
 
 ---
 
@@ -950,7 +953,7 @@ withSQL {
 ```
 @[3](`DB.localTx { ... }`でトランザクション管理されたセッションを取得することができます)
 @[3](この中の処理が正常に終了した場合はコミットされ、例外が発生した場合は自動的にロールバックされます)
-@[13](Users.create()はscalikejdbcGenによって自動生成されたメソッドで、INSERTにあたります)
+@[13](User.create()はscalikejdbcGenによって自動生成されたメソッドで、INSERTにあたります)
 
 ---
 
@@ -980,30 +983,32 @@ withSQL {
     }
   }
 ```
-@[13](Users.save()はscalikejdbcGenによって自動生成されたメソッドで、UPDATEにあたります)
+@[13](User.save()はscalikejdbcGenによって自動生成されたメソッドで、UPDATEにあたります)
 
 ---
 
 # (参考) INSERTとUPDATEをQueryDSLで書いてみる
-INSERTに対応するUsers.create()や、UPDATEに対応するUsers.save()など、ここでもscalikejdbcGenによって自動生成されたメソッドを使用していますが、これらをQueryDSLを使って書き直すと以下のようになります。
+INSERTに対応するUser.create()や、UPDATEに対応するUser.save()など、ここでもscalikejdbcGenによって自動生成されたメソッドを使用していますが、これらをQueryDSLを使って書き直すと以下のようになります。
 
 ```scala
 // INSERTをQueryDSLで書き直した場合
 val generatedKey = withSQL {
-  val column = Users.column
-  insert.into(Users).namedValues(
-    column.name -> form.name,
-    column.companyId -> form.companyId
+  insert.into(User).namedValues(
+    u.name -> form.name,
+    u.email -> form.email,
+    u.authoity -> form.authority,
+    u.companyId -> form.companyId
   )
 }.updateAndReturnGeneratedKey.apply()
 
 // UPDATEをQueryDSLで書き直した場合
-withSQL {
-  val column = Users.column
-  QueryDSL.update(Users).set(
-    column.name -> form.name,
-    column.companyId -> form.companyId
-  ).where.eq(column.id, user.id)
+ withSQL {
+  QueryDSL.update(User).set(
+    u.name -> form.name,
+    u.email -> form.email,
+    u.authoity -> form.authority,
+    u.companyId -> form.companyId
+  ).where.eq(u.id, form.id)
 }.update.apply()
 ```
 
@@ -1033,16 +1038,16 @@ withSQL {
     Redirect(routes.UserController.list(None))
   }
 ```
-@[4](`Users.destroy()` もscalikejdbcGenで自動生成されたメソッドです)
+@[4](`User.destroy()` もscalikejdbcGenで自動生成されたメソッドです)
 
 ---
 
 # (参考) DELETEをQueryDSLで書き直す
-`Users.destroy()` をQueryDSLで書き直すと以下のようになります。
+`User.destroy()` をQueryDSLで書き直すと以下のようになります。
 
 ```scala
 withSQL {
-  delete.from(Users).where.eq(Users.column.id, entity.id)
+  delete.from(User).where.eq(u.id, id)
 }.update.apply()
 ```
 
@@ -1053,22 +1058,409 @@ withSQL {
 
 ---
 
-# build.sbtを編集してみよう
-さらに依存関係を追加してみましょう。
-jQueryとBootstrapを依存関係に追加します。
+# ScalikeJDBでJOINする
+ここまではscalikejdbcGenで自動生成されたメソッドやシンプルなQueryDSLを使用してきましたが、テーブルのジョインが必要なケースについても実装してみましょう。
+
+ユーザの一覧画面に以下のように会社名を表示するようにしてみます。
+
+![join](slide/join.png)
+
+---
+
+# Controllerの修正
+まずはUserControllerのlistメソッドを以下のように修正します。
+
+```scala
+  // 一覧画面の表示
+  def list(authority: Option[String]) = Action { implicit request =>
+
+    val where: Option[SQLSyntax] = authority.map(a => sqls"${u.authority} = $a")
+
+    DB.readOnly { implicit session =>
+      // ユーザのリストを取得
+      val users = withSQL {
+        select
+          .from(User as u).leftJoin(Company as c).on(u.companyId, c.id)
+          .where(where)
+          .orderBy(u.id.asc)
+      }.map { rs =>
+        (
+          User(u)(rs),
+          rs.intOpt(c.resultName.id).map(_ => Company(c)(rs))
+        )
+      }.list.apply()
+
+      // 一覧画面を表示
+      Ok(views.html.user.list(users))
+    }
+  }
+```
+@[10](`leftJoin` と `on` メソッドでuserテーブルとcompanyテーブルを外部結合)
+@[15](`User(u)(rs)` で結果セットをUserクラスをマッピング)
+@[16](外部結合したテーブルの値を取得する場合、map()メソッドでOption型に変換する必要があるという点に注意)
+@[16](結果セットからcompanyテーブルのIDカラムをintOptメソッドでOption[Int]型として取得し、値が取得できた場合のみCompanyクラスにマッピング)
+
+---
+
+# Viewの修正
+続いて `list.scala.html` を以下のように修正します。検索結果の型が `Seq[User]` から `Seq[(User, Option[Company])]` に変わり、表に「会社名」という列を追加しています。
+
+```scala
+@* このテンプレートの引数 *@
+@(users: Seq[(models.User, Option[models.Company])])(implicit request: RequestHeader)
+
+  @* テンプレートで利用可能なヘルパーをインポート *@
+  @import helper._
+
+  @* main.scala.htmlを呼び出す *@
+  @main("ユーザ一覧") {
+
+    <div>
+      <a href="@routes.UserController.edit()" class="btn btn-success" role="button">新規作成</a>
+    </div>
+
+    <div class="col-xs-6">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名前</th>
+            <th>会社名</th>
+            <th>Email</th>
+            <th>ユーザー種別</th>
+            <th>&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+          @* ユーザの一覧をループで出力 *@
+          @users.map { case (user, company) =>
+            <tr>
+              <td>@user.id</td>
+              <td><a href="@routes.UserController.edit(Some(user.id))">@user.name</a></td>
+              <td>@company.map(_.name)</td>
+              <td>@user.email</td>
+              <td>@user.authority</td>
+              <td>@helper.form(CSRF(routes.UserController.remove(user.id))){
+                <input type="submit" value="削除" class="btn btn-danger btn-xs"/>
+              }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+```
+@[20](「会社名」カラムを追加)
+@[28](`map` の引数内でcase句を使いたタプルを分解（後ほど解説します）)
+@[34](会社名が存在すればそれを表示する)
+
+---
+
+# case句を用いたタプルの分解
+タプルの内容には、 `._1` など添字でアクセスすることもできますが、これはバグの元になりやすいという欠点があります。  
+
+```scala
+val children = Seq(("taro", 12), ("jiro", 10))
+val text = children.map(x => s"${x._1}さんは${x._2}歳です")
+```
+
+---
+
+# case句を用いたタプルの分解
+`case` 句を使って構造を分解することで変数に束縛し、名前つきで扱えるようにするというテクニックがあります。
+
+```scala
+val children = Seq(("taro", 12), ("jiro", 10))
+val text = children.map { (name, age) => s"${name}さんは${age}歳です" }
+```
+
+---
+
+# 動作確認
+ユーザー一覧画面にアクセスすると、会社名の欄が追加できていることが確認できるはずです👍
+
+---
+
+# (番外編) ScalikeJDBCでSQLを直接記述する
+ここではタイプセーフなDSLを使ったJOINを使用しましたが、集計処理など少し複雑な操作が必要な場合はSQLを直接記述したいことがあります。
+
+---
+
+# (番外編) ScalikeJDBCでSQLを直接記述する
+`sql` interpolationを使うと文字列リテラルで生SQLを記述することができます。  
+ただし、SQLを完全に記述するだけでなく、自動生成されたクラスを使って記述を補助することができます。
+
+```scala
+val users: Seq[(Users, Companies)] = sql"""
+  |SELECT ${u.result.*}, ${c.result.*}
+  |FROM ${Users.as(u)} INNER JOIN ${Companies.as(c)}
+  |ON ${u.companyId} = ${c.id}
+""".stripMargin.map { rs =>
+  (Users(u)(rs), Companies(c)(rs))
+}.list.apply()
+```
+
+SELECT句に大量のカラムを記述する必要がなかったり、テーブル名やカラム名のタイプミスを防ぐことができます。また、sql interpolationを使う場合はwithSQL { ... }で囲む必要はありません。map()メソッド以降はQueryDSLの場合と同じです。
+
+---
+
+# (宣伝) Emojipolation
+`emoji` interpolationのためのライブラリを以前作ったので、もし興味があれば...😇
+
+![emojipolation](slide/emojipolation.png)
+
+https://github.com/todokr/emojipolation
+
+---
+
+# JSON APIをつくる
+フロントエンドがAngularJSやスマートフォンアプリの場合、サーバサイドはJSONを返却するAPIを提供する必要があります。  
+ここまでに作成してきたユーザ情報のCRUD処理について、Play2のJSONサポート機能を使ってJSONベースのWeb APIを実装します。
+
+---
+
+# Controllerwの実装
+controllersパッケージに `JsonController` クラスを以下の内容で作成します。ScalikeJDBCやPlay2のJSONサポートを使用するためのimport文を予め含めています。
+
+```scala
+package controllers
+
+import play.api.mvc._
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+import javax.inject.Inject
+import scalikejdbc._
+import models._
+
+class JsonController @Inject()(components: ControllerComponents)
+  extends AbstractController(components) {
+
+  //一覧表示
+  def list = TODO
+
+  // ユーザ登録
+  def create = TODO
+
+  // ユーザ更新
+  def update = TODO
+
+  // ユーザ削除
+  def remove(id: Long) = TODO
+}
+```
+@[4](`play.api.libs.json._` はPlay2のJSONサポート機能を使用するために必要なimport文です)
+
+---
+
+# ルーティングの設定
+
+`conf/routes` に以下の内容を追記します。
 
 ```
-libraryDependencies ++= Seq(
-  guice,
-  "mysql" % "mysql-connector-java" % "6.0.6",
-  "org.webjars" % "jquery" % "3.3.1-1", // 追加
-  "org.webjars" % "bootstrap" % "4.1.3", // 追加
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
-)
-
+# JSON API
+GET         /json/list              controllers.JsonController.list
+POST        /json/create            controllers.JsonController.create
+POST        /json/update            controllers.JsonController.update
+POST        /json/remove/:id        controllers.JsonController.remove(id: Long)
 ```
 
-# WebJar
-- jQueryやBootstrapといったフロントエンドのライブラリをJAR(Java Archive)としてパッケージングして提供している
-- フロントエンドのライブラリの依存関係が、Javaのライブラリと同様に管理できるようになる
-- SPAとかやるならnpm/yarn使った方がいいかと思うけど、jQuery程度ならこちらの方法が楽
+---
+
+# ユーザー一覧APIの実装
+`user` テーブルからIDの昇順に全件取得し、ユーザ一覧をJSONで返します。
+
+---
+
+# Writesの定義
+Play2のJSONサポートでは、ScalaオブジェクトをJSONに変換するためのWrites、JSONをScalaオブジェクトに変換するためのReadsを定義する必要があります。
+
+- Writes: Scala → JSON
+- Reads: JSON → Scala
+
+---
+
+# Writesの定義
+今回は「userテーブルを検索して取得したケースクラスのリスト」をJSONに変換して返却するので、userテーブルのUserクラスに対応するWritesを定義します。  
+画面から値を受け取るFormと同様、該当のコントローラ（ここではJsonController）のコンパニオンオブジェクトとして以下の内容を追加します。
+
+```scala
+object JsonController {
+  // UsersをJSONに変換するためのWritesを定義
+  implicit val userWrites: Writes[User] = (
+    (__ \ "id"       ).write[Long]   and
+    (__ \ "name"     ).write[String] and
+    (__ \ "email"    ).write[String] and
+    (__ \ "authority").write[String] and
+    (__ \ "companyId").write[Long]
+  )(unlift(User.unapply))
+}
+```
+
+---
+
+# Controllerの実装
+`JsonController` の `list` メソッドを以下のように実装します。
+
+```scala
+// コンパニオンオブジェクトに定義したReads、Writesを参照するためにimport文を追加
+import JsonController._
+
+def list = Action { implicit request =>
+  val u = Users.syntax("u")
+
+  DB.readOnly { implicit session =>
+    // ユーザのリストを取得
+    val users = withSQL {
+      select.from(Users as u).orderBy(u.id.asc)
+    }.map(Users(u.resultName)).list.apply()
+
+    // ユーザの一覧をJSONで返す
+    Ok(Json.obj("users" -> users))
+  }
+}
+```
+@[14](`Json.obj` メソッドでケースクラスからJSONへの変換が行われますが、このときにケースクラスに対応したWritesが定義されていないとコンパイルエラー)
+
+---
+
+# 動作確認してみる
+ターミナルから `curl` コマンドを叩いて結果を確認してみましょう。
+
+```sh
+curl -XGET http://localhost:9000/json/list
+```
+
+下記のような結果が返ってくればOKです。
+
+```json
+{"users":[{"id":1,"name":"田中 太郎","email":"tanaka@example.com","authority":"ADMIN","companyId":1},{"id":2,"name":"鈴木 次郎","email":"suzuki@example.com","authority":"READONLY","companyId":1},{"id":3,"name":"佐藤 三郎","email":"sato@example.com","authority":"EDITOR","companyId":1},{"id":4,"name":"藤原 四郎","email":"fujiwara@example.com","authority":"EDITOR","companyId":2}]}
+```
+
+---
+
+# ユーザ登録・更新APIの実装
+ユーザ情報をJSONで受け取り、登録もしくは更新を行います。
+
+---
+
+# Readsの定義
+`JsonController` のコンパニオンオブジェクトにユーザー情報を受け取るためのケースクラスと、JSONからそのケースクラスに変換するためのReadsを定義します。
+
+```scala
+object JsonController {
+  ...
+
+  // ユーザ情報を受け取るためのケースクラス
+  case class UserForm(id: Option[Long], name: String, email: String, authority: String, companyId: Option[Int])
+
+  // JSONをUserFormに変換するためのReadsを定義
+  implicit val userFormReads = (
+    (__ \ "id"       ).readNullable[Long] and
+    (__ \ "name"     ).read[String]       and
+    (__ \ "email"    ).read[String]       and
+    (__ \ "authority").read[String]       and
+    (__ \ "companyId").readNullable[Long]
+  )(UserForm)
+}
+```
+
+---
+
+# Controllerの実装(1)
+JsonControllerのcreateメソッドを以下のように実装します。  
+JSONリクエストを受け取る場合は `Action(parse.json) { ... } ` のようにアクションにparse.jsonを指定します。  `request.body.validate` メソッドでJSONをケースクラスに変換でき、変換に失敗した場合の処理を `recoverTotal` メソッドで行うことができます。
+
+```scala
+def create = Action(parse.json) { implicit request =>
+  request.body.validate[UserForm].map { form =>
+    // OKの場合はユーザを登録
+    DB.localTx { implicit session =>
+      User.create(form.name, form.email, form.authority, form.companyId)
+      Ok(Json.obj("result" -> "success"))
+    }
+  }.recoverTotal { e =>
+    // NGの場合はバリデーションエラーを返す
+    BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e)))
+  }
+}
+```
+
+---
+
+# Controllerの実装(2)
+同様に `update` メソッドを以下のように実装します。
+
+```scala
+def update = Action(parse.json) { implicit request =>
+  request.body.validate[UserForm].map { form =>
+    // OKの場合はユーザ情報を更新
+    DB.localTx { implicit session =>
+      User.find(form.id.get).foreach { user =>
+        User.save(user.copy(name = form.name, email = form.email, authority = form.authority, companyId = form.companyId))
+      }
+      Ok(Json.obj("result" -> "success"))
+    }
+  }.recoverTotal { e =>
+    // NGの場合はバリデーションエラーを返す
+    BadRequest(Json.obj("result" -> "failure", "error" -> JsError.toJson(e)))
+  }
+}
+```
+@[1](`parse.json` はボディパーサと呼ばれるもので、リクエストボディの処理方法を決めるものです)
+
+---
+
+# 動作確認(1)
+コマンドラインから以下のコマンドを実行してユーザ情報を登録・更新できることを確認しましょう。
+
+### 登録
+
+```sh
+curl -H "Content-type: application/json" -XPOST -d '{"name":"TestUser", "email": "test@example.com", "authority": "EDITOR", "companyId":1}' http://localhost:9000/json/create
+```
+
+### 更新
+
+```sh
+curl -H "Content-type: application/json" -XPOST -d '{"id": 1, "name":"UpdatedUser", "email": "test@example.com", "authority": "EDITOR", "companyId":1}' http://localhost:9000/json/update
+```
+
+---
+
+# 動作確認(2)
+エラー時のレスポンスを確認するために、以下のように不正なJSONを送信してみましょう（プロパティ名がnameではなくuserNameになっている）。
+
+```sh
+curl -H "Content-type: application/json" -XPOST -d '{"userName":"TestUser", "email": "test@example.com", "authority": "EDITOR", "companyId":1}' http://localhost:9000/json/create
+```
+
+---
+
+# ユーザ削除APIの実装
+指定したIDのユーザを `user` テーブルから削除します。
+
+# Controllerの実装
+
+`JsonController` の `remove` メソッドを以下のように実装します。
+
+```scala
+def remove(id: Long) = Action { implicit request =>
+  DB.localTx { implicit session =>
+    // ユーザを削除
+    User.find(id).foreach { user =>
+      User.destroy(user)
+    }
+    Ok(Json.obj("result" -> "success"))
+  }
+}
+```
+
+---
+
+# 動作確認
+ターミナルから以下のコマンドを実行してユーザが削除されることを確認してください。
+
+```sh
+curl -XPOST http://localhost:9000/json/remove/1
+```
