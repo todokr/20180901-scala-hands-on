@@ -90,6 +90,9 @@ class FutureTrainingSpec extends WordSpec with MustMatchers {
 
   /**
     * FIXME
+    * - doFailureを実行して例外となる事を確認しよう
+    * - 例外が起きても処理が中断されないようにしてみよう
+    * - Futureで実行すると例外が発生しても、処理が中断されていない事を確認してみよう
     * - Future内での例外をonCompleteで拾い、例外メッセージを表示してみよう
     */
   def doTaskSafety() = {
