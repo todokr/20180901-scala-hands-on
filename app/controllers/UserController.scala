@@ -12,13 +12,18 @@ class UserController @Inject()(components: MessagesControllerComponents)
 
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
-
     val u = User.syntax("u")
+
+    val where = authority.map(a => sqls"${u.authority} = $a").getOrElse(sqls"")
+
+    val where2 = if (authority.isDefined) {
+      sqls"${u.authority} = ${authority.get}"
+    } else sqls""
 
     DB.readOnly { implicit session =>
       // ユーザのリストを取得
       val users = withSQL {
-        select.from(User as u).orderBy(u.id.asc)
+        select.from(User as u).where(where).orderBy(u.id.asc)
       }.map(User(u.resultName)).list.apply()
 
       // 一覧画面を表示

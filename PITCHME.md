@@ -5,7 +5,7 @@
 
 # 今日のゴール
 
-- Scala + PlayFrameworkでCRUDアプリケーションが作れるようになる
+- Scala + PlayFramework + ScalikeJDBCでCRUDアプリケーションが作れるようになる
 - Scalaの関数型言語としてのエッセンスと、その嬉しさを理解する
 
 ---
@@ -66,10 +66,10 @@
 # WAF & DB Access
 
 ## Web Application Framework
-PlayFramework 2.6.x
+- [PlayFramework 2.6.x](https://www.playframework.com/)
 
 ## DB Access Library
-ScalikeJDBC 3.2.x
+- [ScalikeJDBC 3.2.x](http://scalikejdbc.org/)
 
 ---
 
@@ -113,15 +113,17 @@ sbt
 run
 ```
 
+---
+
 # プロジェクトの準備(4)
 
-> **POINT**
->
-> * `run`で実行している間はホットデプロイが有効になっているため、ソースを修正するとすぐに変更が反映されます
-> * CTRL+Dで`run`での実行を終了し、sbtシェルに戻ることができます
-> * `run`で実行中に何度も修正を行っているとヒープが不足してプロセスが終了してしまったりエラーが出たまま応答がなくなってしまう場合があります
-> * プロセスが終了してしまった場合は再度`sbt`と`run`を実行してください
-> * 応答しなくなってしまった場合は一度ターミナルを閉じ、再度起動して`sbt`と`run`を実行してください
+## POINT
+
+- `run`で実行している間はホットデプロイが有効になっているため、ソースを修正するとすぐに変更が反映されます
+- CTRL+Dで`run`での実行を終了し、sbtシェルに戻ることができます
+- `run`で実行中に何度も修正を行っているとヒープが不足してプロセスが終了してしまったりエラーが出たまま応答がなくなってしまう場合があります
+- プロセスが終了してしまった場合は再度`sbt`と`run`を実行してください
+- 応答しなくなってしまった場合は一度ターミナルを閉じ、再度起動して`sbt`と`run`を実行してください
 
 初回の起動にはしばらく時間がかかるので、その間にScalaの基本文法について学びます👍
 
@@ -269,8 +271,8 @@ class UserController @Inject()(components: MessagesControllerComponents)
 ```
 @[8](PlayFrameworkではControllerをclassとして実装します)
 @[8](@Injectアノテーションと2つの引数が定義されていますが、これはPlay 2.4から導入されたGoogle GuiceによるDI機能を使用するためのもの)
+@[8](MessagesControllerComponents: Playの国際化機能を使用するために必要)
 @[9](ControllerとなるClassは `MessagesAbstractController` を継承します)
-@[9](MessagesControllerComponents: Playの国際化機能を使用するために必要)
 @[12](各ActionはScalaのメソッドとして定義します)
 @[12](`TODO` はPlayが提供している開発用お役立ちメソッドで、未実装なActionを表します)
 
@@ -308,15 +310,6 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 - `localhost:9000/user/list` にアクセスしてみましょう
 - 未実装であることを示す紫色の画面が表示されればOKです
 
----
-
-# ここまでのまとめ
-
-- ControllerはAbstractControllerを継承したclassとして実装する
-- 各Actionはメソッドとして実装する
-- 未実装のActionは `TODO` としておける
-- ルーティング設定は `conf/routes` で行う
-  
 ---
 
 # MySQLの準備をする(1)
@@ -512,7 +505,7 @@ generator.dateTimeClass=java.time.OffsetDateTime
 ---
 
 # Modeを自動生成する(3)
-最後に `build.sbt` に以下の記述を追加します。これでModeの自動生成を行うscalikejdbcGenタスクが使用できるようになります。
+最後に `build.sbt` に以下の記述を追加します。これでModelの自動生成を行うscalikejdbcGenタスクが使用できるようになります。
 
 ```
 enablePlugins(ScalikejdbcPlugin)
@@ -553,13 +546,6 @@ play.modules.enabled += "scalikejdbc.PlayModule"
 # scalikejdbc.PlayModule doesn't depend on Play's DBModule
 play.modules.disabled += "play.api.db.DBModule"
 ```
-
----
-
-# ここまでのまとめ
-
-- ScalikeJDBCはScalaのDBアクセスライブラリ
-- scalikejdbcGenAllタスクでDBのスキーマからModelを自動生成できる
 
 ---
 
@@ -608,7 +594,7 @@ modelが生成できたので、ユーザー一覧画面を実装しましょう
 
 }
 ```
-@[1](`@* ... *@`で囲まれな内容はコメントです)
+@[1](`@* ... *@`で囲まれた内容はコメントです)
 @[2](テンプレートの最初にはコントローラから受け取る引数を記述します)
 @[5](@importでインポート文を記述することができます。@import helper._でPlayが提供する標準ヘルパー（フォームなどを出力する関数）をインポートしています)
 @[11](リンクやフォームのURLは、@routes.・・・と記述することでルーティングから生成することができます)
@@ -617,6 +603,7 @@ modelが生成できたので、ユーザー一覧画面を実装しましょう
 ---
 
 # ユーザー一覧画面を実装する(2)
+次はControllerです。
 アプリケーションの設計としてはあまり良くありませんが、まずはControllerにすべてのロジックを書いてしまいます。
 
 ```scala
@@ -626,39 +613,31 @@ import play.api.mvc._
 import play.api.data._
 import play.api.data.Forms._
 import javax.inject.Inject
-import scalikejdbc._
-import models._
+import scalikejdbc._ // 追加
+import models._ // 追加
 
 class UserController @Inject()(components: MessagesControllerComponents)
   extends MessagesAbstractController(components) {
 
+  private val u = User.syntax("u")
+
   // 一覧画面の表示
-  def list(authority: Option[String]) = Action { implicit request =>
+  def list = Action { implicit request =>
+    DB.readOnly { implicit session =>
+      // ユーザのリストを取得
+      val users = withSQL {
+        select.from(User as u).orderBy(u.id.asc)
+      }.map(User(u.resultName)).list.apply()
 
-    val dbioAction: DBIO[Seq[UserRow]] = User.sortBy(_.userId).result
-    val futureResult: Future[Seq[UserRow]] = db.run(dbioAction)
-    val users: Seq[UserRow] = Await.result(futureResult, Duration.Inf)
-
-    Ok(views.html.user.list(users))
+      // 一覧画面を表示
+      Ok(views.html.user.list(users))
+    }
   }
-
-  // 編集画面の表示
-  def edit(id: Option[Long]) = TODO
-
-  // 登録処理の実行
-  def create  = TODO
-
-  // 更新処理の実行
-  def update = TODO
-
-  // 削除処理の実行
-  def remove(id: Long) = TODO
-
-}
+...
 ```
-@[27](DBにどのように問い合わせるかを定義。 `UserRow` はuserテーブルの1レコードを表す)
-@[28](DBに実際に問い合わせを実行。返り値の型はFuture)
-@[29](`Await.result()` でFutureが完了するのを待ち、結果を `UserRow` のコレクションとして取得)
+@[13](ScalikeJDBCのQueryDSL（SQLをタイプセーフに記述するためのDSL）を使用する際にテーブル毎に必要となるもの)
+@[17](`DB.readOnly { ... }` で参照専用のセッションを取得することができます)
+@[20](このコードは `SELECT * FROM USERS ORDER BY ID` というSQLと同じ意味)
 
 ---
 
@@ -669,29 +648,8 @@ class UserController @Inject()(components: MessagesControllerComponents)
 
 ---
 
-# ここまでのまとめ
-- Slickは「どのようにDBに問い合わせるか」と「実際のDBへの問い合わせ」を分離している
-  - `DBIO` は「DBにどのように問い合わせるか」を表す型
-  - `db.run(...)` は実際のDBへの問い合わせ
-  - 実はここに関数型のエッセンスが隠れている...！が詳しくは後ほど
-- `db.run(...)` の返り値は `Future` で、これは「引換券」のようなもの。これも後ほど詳しく
-- DBアクセスをするためには `DatabaseConfigProvider` のインスタンスを取得し、`HasDatabaseConfigProvider` をミックスインする
-
----
-
-# 機能を追加してみよう
-一覧ページに、ユーザー種別でフィルターする機能を追加しましょう。
-そのためにまず「コレクション操作」を学びます👍
-
----
-
-# コレクション操作に入門する
-- map, filter, collect
-(いわまっちゃんお願いします)
-
----
-
 # ユーザー種別でフィルターしてみよう
+一覧ページに、ユーザー種別でフィルターする機能を追加しましょう。  
 DBのuserテーブルのAUTHORITYカラムには「ADMIN」「EDITOR」「READONLY」の3種類のユーザー種別があります。
 アプリケーションを改修し、一覧画面において特定のユーザーだけを表示できるようにしてみましょう。
 
@@ -717,11 +675,14 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 ---
 
 # クエリパラメータをControllerで受け取れるようにする(2)
-続いてControllerのlistメソッドに引数ブロックを追加します。
+続いてControllerのlistメソッドに引数ブロックを追加します。動作を見てみるためにprintlnもしてみましょう。
 
 ```scala
 // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
+    println("************************)
+    println(authority)
+    println("************************)
 ```
 
 これで `?authority=XXX` とリクエストが来た場合に、Controllerで `XXX` を受け取れるようになります。
@@ -756,23 +717,36 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 
 # 受け取ったクエリパラメータでユーザーをフィルタリングする
 Controllerが受け取った `authority` がSomeなら中身の文字列を使ってフィルタリング、
-Noneならフィルタリングしないそのままの結果を使うように改修してみましょう。
+Noneならフィルタリングしないそのままの結果を使うように改修してみましょう。  
+ifを使うとこのようになるかと思います。
 
 ```scala
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
-    val users = Await.result(db.run(User.sortBy(_.userId).result), Duration.Inf)
 
-    val result = if (authority.isDefined) { 
-      users.filter(_.authority == authority.get.toUpperCase)
-    } else {
-      users
+    val whereCondition = if (authority.isDefined) {
+      sqls"${u.authority} = ${authority.get}"
+    } else sqls""
+
+    DB.readOnly { implicit session =>
+      // ユーザのリストを取得
+      val users = withSQL {
+        select.from(User as u).where(whereCondition).orderBy(u.id.asc)
+      }.map(User(u.resultName)).list.apply()
+
+      // 一覧画面を表示
+      Ok(views.html.user.list(users))
     }
-
-    Ok(views.html.user.list(result))
   }
-
 ```
+
+---
+
+# フィルタリングされるか確認してみよう
+
+- http://localhost:9000/user/list?authority=admin
+- http://localhost:9000/user/list?authority=editor
+- http://localhost:9000/user/list?authority=readonly
 
 ---
 
@@ -781,61 +755,8 @@ Noneならフィルタリングしないそのままの結果を使うように�
 大抵は `Option#map` と `Option#getOrElse` の組み合わせでgetを撲滅することができます。
 
 ```scala
-val result = authority.map { a =>
-  // authorityがSomeのときはその値を使ってフィルタリングする
-  users.filter(_.authority == a.toUpperCase)
-}.getOrElse(users)
+val where = authority.map(a => sqls"${u.authority} = $a").getOrElse(sqls"")
 ```
----
-
-# Slickでフィルタリングしよう(1)
-ここまでの実装では、DBからユーザーを全件取得したうえで、アプリケーション側でフィルタリングを行っていました。ユーザー数が少ないうちは良いですが、取得する件数が多くなるとアプリケーション側に大きな負荷がかかってしまいます。  
-
----
-
-# Slickでフィルタリングしよう(2)
-Slickが生成するSQLの `where` 句でユーザーを絞り込むようにしてみましょう。  
-Slickは極力Scalaのコレクションと同じように操作できるように設計されています。
-
-```scala
-// 一覧画面の表示
-def list(authority: Option[String]) = Action { implicit request =>
-  val dbAction = authority.map { a =>
-    // authorityがSomeのときはその値を使ってフィルタリングする
-    User.filter(_.authority === a.bind).sortBy(_.userId).result
-  }.getOrElse(User.sortBy(_.userId).result)
-
-  val result = Await.result(db.run(dbAction), Duration.Inf)
-
-  Ok(views.html.user.list(result))
-}
-```
-
----
-
-# Slickでフィルタリングしよう(3)
-
-```scala
-User.filter(_.authority === a.bind).sortBy(_.userId).result
-```
-
-- コレクション操作と同じように `filter` ができます
-- `===` は比較のためのSlickのメソッドです
-- `bind` をつけるとバインド変数になります
-
----
-
-# バインド変数にする目的
-
-- prepared statementによるパフォーマンス向上
-- SQLインジェクションの防止
-
-詳しくはこちらの記事がおすすめ: https://www.ibm.com/developerworks/jp/security/library/se-bindvariables/index.html
-
----
-
-# ここまでのまとめ
-
 
 ---
 
