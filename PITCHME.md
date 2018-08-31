@@ -183,7 +183,6 @@ libraryDependencies ++= Seq(
 - [Playのセキュリティヘッダフィルタについてのドキュメント](https://www.playframework.com/documentation/2.6.x/SecurityHeaders)
 - [同一生成元ポリシーについて](https://developers.google.com/web/fundamentals/security/csp/)
 
-
 ---
 
 # Bootstrapを使う準備(2)
@@ -503,7 +502,7 @@ class UserController @Inject()(
 ---
 
 # ユーザー一覧画面にアクセスしてみる
-再度、 `http://localhost:9000/user/list` にアクセスしてみましょう。下記のように一覧画面が表示されればOKです������
+再度、 `http://localhost:9000/user/list` にアクセスしてみましょう。下記のように一覧画面が表示されればOKです��
 
 ![ユーザー一覧](slides/user-list.png)
 
@@ -532,8 +531,8 @@ DBのuserテーブルのAUTHORITYカラムには「ADMIN」「EDITOR」「READON
 - `http://localhost/user/list?authority=admin` のときは、「ADMIN」のユーザーだけの一覧を表示
 - `http://localhost/user/list?authority=editor` のときは、「EDITOR」のユーザーだけの一覧を表示
 - `http://localhost/user/list?authority=readonly` のときは、「READONLY」のユーザーだけの一覧を表示
-- それ以外のときは、全ユーザー種別の一覧を表示
----
+- クエリパラメータがないときは、全ユーザー種別の一覧を表示
+
 とします。
 
 ---
@@ -624,36 +623,13 @@ val result = authority.map { a =>
 # Option練習問題
 【いわまっちゃんお願いします】
 
-
-
 # 会員種別ごとの人数が見られるページを作ってみよう
-
-
 
 ---
 
 # 一覧ページを実装する
 
-
-
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # build.sbtを編集してみよう
 さらに依存関係を追加してみましょう。
