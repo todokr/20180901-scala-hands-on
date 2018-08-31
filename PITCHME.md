@@ -557,48 +557,51 @@ modelが生成できたので、ユーザー一覧画面を実装しましょう
 @* このテンプレートの引数 *@
 @(users: Seq[models.User])(implicit request: RequestHeader)
 
-@* テンプレートで利用可能なヘルパーをインポート *@
-@import helper._
+  @* テンプレートで利用可能なヘルパーをインポート *@
+  @import helper._
 
-@* main.scala.htmlを呼び出す *@
-@main("ユーザ一覧") {
+  @* main.scala.htmlを呼び出す *@
+  @main("ユーザ一覧") {
 
-<div>
-  <a href="@routes.UserController.edit()" class="btn btn-success" role="button">新規作成</a>
-</div>
+    <div>
+      <a href="@routes.UserController.edit()" class="btn btn-success" role="button">新規作成</a>
+    </div>
 
-<div class="col-xs-6">
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>名前</th>
-        <th>&nbsp;</th>
-      </tr>
-    </thead>
-    <tbody>
-    @* ユーザの一覧をループで出力 *@
-    @users.map { user =>
-      <tr>
-        <td>@user.id</td>
-        <td><a href="@routes.UserController.edit(Some(user.id))">@user.name</a></td>
-        <td>@helper.form(CSRF(routes.UserController.remove(user.id))){
-          <input type="submit" value="削除" class="btn btn-danger btn-xs"/>
-        }
-        </td>
-      </tr>
-    }
-    </tbody>
-  </table>
-</div>
-
-}
+    <div class="col-xs-6">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名前</th>
+            <th>Email</th>
+            <th>ユーザー種別</th>
+            <th>&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+          @* ユーザの一覧をループで出力 *@
+          @users.map { user =>
+            <tr>
+              <td>@user.id</td>
+              <td><a href="@routes.UserController.edit(Some(user.id))">@user.name</a></td>
+              <td>@user.email</td>
+              <td>@user.authority</td>
+              <td>@helper.form(CSRF(routes.UserController.remove(user.id))){
+                <input type="submit" value="削除" class="btn btn-danger btn-xs"/>
+              }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 ```
 @[1](`@* ... *@`で囲まれた内容はコメントです)
 @[2](テンプレートの最初にはコントローラから受け取る引数を記述します)
 @[5](@importでインポート文を記述することができます。@import helper._でPlayが提供する標準ヘルパー（フォームなどを出力する関数）をインポートしています)
 @[11](リンクやフォームのURLは、@routes.・・・と記述することでルーティングから生成することができます)
-@[29](デフォルトでCSRFフィルタが有効になっているため、フォームの送信先はCSRF(...)で囲む必要があります)
+@[33](デフォルトでCSRFフィルタが有効になっているため、フォームの送信先はCSRF(...)で囲む必要があります)
 
 ---
 
@@ -724,9 +727,9 @@ ifを使うとこのようになるかと思います。
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
 
-    val whereCondition = if (authority.isDefined) {
-      sqls"${u.authority} = ${authority.get}"
-    } else sqls""
+    val whereCondition: Option[SQLSyntax] = if (authority.isDefined) {
+      Some(sqls"${u.authority} = ${authority.get}")
+    } else None
 
     DB.readOnly { implicit session =>
       // ユーザのリストを取得
@@ -752,10 +755,10 @@ ifを使うとこのようになるかと思います。
 
 # フィルタリング処理をリファクタしてみよう
 `Option#get` はNoneに対して呼んでしまうと `java.util.NoSuchElementException` の例外が発生します。Noneに対するgetのエラーはコンパイル時に発見できないため、なるべく避けるのがScalaらしいスタイルです。  
-大抵は `Option#map` と `Option#getOrElse` の組み合わせでgetを撲滅することができます。
+今回は `Option#map` を使ってgetを撲滅してみましょう。
 
 ```scala
-val where = authority.map(a => sqls"${u.authority} = $a").getOrElse(sqls"")
+val where: Option[SQLSyntax] = authority.map(a => sqls"${u.authority} = $a")
 ```
 
 ---
@@ -776,17 +779,23 @@ val where = authority.map(a => sqls"${u.authority} = $a").getOrElse(sqls"")
 ```
 object UserController {
   // フォームの値を格納するケースクラス
-  case class UserForm(id: Option[Long], name: String, companyId: Option[Int])
+  case class UserForm(id: Option[Long], name: String, email: String, authority: String, companyId: Long)
 
   // formから送信されたデータ ⇔ ケースクラスの変換を行う
   val userForm = Form(
     mapping(
       "id"        -> optional(longNumber),
       "name"      -> nonEmptyText(maxLength = 20),
-      "companyId" -> optional(number)
+      "email"          -> nonEmptyText(maxLength = 200),
+      "authority"      -> nonEmptyText,
+      "companyId" -> longNumber
     )(UserForm.apply)(UserForm.unapply)
   )
+
+  // 併せて選択できるユーザー種別も定義します
+  val authorities = Set("ADMIN", "EDITOR", "READONLY")
 }
+
 ```
 
 ---
@@ -800,10 +809,13 @@ object UserController {
 ---
 
 # Viewの実装
-続いて `views.user` パッケージに `edit.scala.html` を実装します。引数にはFormのインスタンスと、プルダウンで選択する会社情報を格納した `Seq` を受け取ります。
+続いて `views.user` パッケージに `edit.scala.html` を実装します。引数にはFormのインスタンスと、プルダウンで選択する会社情報を格納した `Seq`、選択できるユーザー種別格納した `Seq` を受け取ります。
 
 ```html
-@(userForm: Form[controllers.UserController.UserForm], companies: Seq[models.Company])(implicit request: MessagesRequestHeader)
+@(userForm: Form[controllers.UserController.UserForm],
+  companies: Seq[models.Company],
+  authorities: Set[String]
+)(implicit request: MessagesRequestHeader)
 
 @import helper._
 
@@ -816,7 +828,13 @@ object UserController {
       @inputText(userForm("name"), '_label -> "名前")
       </div>
       <div class="form-group">
-      @select(userForm("companyId"), companies.map(x => x.id.toString -> x.name).toSeq, '_label -> "会社", '_default -> "-- 会社名を選択してください --")
+      @inputText(userForm("email"), '_label -> "Email")
+      </div>
+      <div class="form-group">
+      @select(userForm("authority"), authorities.map(x => x -> x).toSeq, '_label -> "ユーザー種別", '_default -> "-- ユーザー種別を選択してください --")
+      </div>
+      <div class="form-group">
+      @select(userForm("companyId"), companies.map(x => x.id.toString -> x.name), '_label -> "会社", '_default -> "-- 会社名を選択してください --")
       </div>
       @* IDがある場合（更新の場合）のみhiddenを出力する *@
       @userForm("id").value.map { value =>
@@ -827,7 +845,6 @@ object UserController {
       </div>
     </fieldset>
   }
-
 }
 ```
 
@@ -855,8 +872,8 @@ class UserController @Inject()(components: MessagesControllerComponents)
         // IDが渡されなかった場合は新規登録フォーム
         case None => userForm
         // IDからユーザ情報を1件取得してフォームに詰める
-        case Some(id) => User.findBy(sqls"${u.id} = $id") match {
-          case Some(user) => userForm.fill(UserForm(Some(user.id), user.name, user.companyId))
+        case Some(id) => User.find(id) match {
+          case Some(user) => userForm.fill(UserForm(Some(user.id), user.name, user.email, user.authority, user.companyId))
           case None => userForm
         }
       }
@@ -866,19 +883,19 @@ class UserController @Inject()(components: MessagesControllerComponents)
         select.from(Company as c).orderBy(c.id.asc)
       }.map(Company(c.resultName)).list().apply()
 
-      Ok(views.html.user.edit(form, companies))
+      Ok(views.html.user.edit(form, companies, authorities))
     }
   }
 ```
 @[16](idが指定されていなかった場合（Noneの場合）は新規登録用の空フォーム)
 @[18~21](idが指定されていた場合（Some(id)の場合）は更新用フォームを生成)
-@[25~27](`User.findBy(...)で更新用フォームに設定するためのユーザ情報をDBから取得)
+@[25~27](`User.find(...)で更新用フォームに設定するためのユーザ情報をDBから取得)
 
 ---
 
 # 自動生成されたメソッドとQueryDSL
 
-`User.findBy(...)` はscalikejdbcGenで自動生成された検索用メソッドです。このような基本的なCRUD処理はQueryDSLを使わなくても自動生成されたメソッドで実装することができます。
+`User.find(...)` はscalikejdbcGenで自動生成された検索用メソッドです。このような基本的なCRUD処理はQueryDSLを使わなくても自動生成されたメソッドで実装することができます。
 
 ちなみにこのメソッドをQueryDSLで書き直すと以下のようになります。
 
@@ -892,10 +909,7 @@ withSQL {
 ---
 
 # ブラウザから確認
-ここまで実装したらブラウザで一覧画面から新規作成やユーザ名のリンクをクリックし、以下のように登録画面と編集画面が表示されることを確認します。
-
-![register](slide/register_form.png)
-![edit](slide/edit_form.png)
+ここまで実装したらブラウザで一覧画面から新規作成やユーザ名のリンクをクリックし、登録画面と編集画面が表示されることを確認します。
 
 ---
 
@@ -905,6 +919,139 @@ withSQL {
 
 - エラーあり ⇒ フォームにエラー情報をセットして入力フォームに戻ります。
 - エラーなし ⇒ DBへの登録・更新処理を行い、一覧画面へリダイレクトします。
+
+---
+
+# Controllerの実装(1)
+`UserController` のメソッドのうち、登録処理を行う `create` メソッドと更新処理を行う `update` メソッドを実装します。
+
+入力フォームの値を受け取るには、 `userForm.bindFromRequest` メソッドでリクエストの内容をFormにバインドし、 `fold` メソッドでエラーがあった場合の処理と、OKの場合の処理を記述します。以下はcreateメソッドの実装例です。
+
+```scala
+ // 登録処理の実行
+  def create = Action { implicit request =>
+    DB.localTx { implicit session =>
+      // リクエストの内容をバインド
+      userForm.bindFromRequest.fold(
+        // エラーの場合
+        error => {
+          BadRequest(views.html.user.edit(error, Company.findAll(), authorities))
+        },
+        // OKの場合
+        form  => {
+          // ユーザを登録
+          User.create(form.name, form.email, form.authority, form.companyId)
+          // 一覧画面へリダイレクト
+          Redirect(routes.UserController.list(None))
+        }
+      )
+    }
+  }
+```
+@[3](`DB.localTx { ... }`でトランザクション管理されたセッションを取得することができます)
+@[3](この中の処理が正常に終了した場合はコミットされ、例外が発生した場合は自動的にロールバックされます)
+@[13](Users.create()はscalikejdbcGenによって自動生成されたメソッドで、INSERTにあたります)
+
+---
+
+# Controllerの実装(2)
+`update` メソッドも同じように実装します。
+
+```scala
+  // 更新処理の実行
+  def update = Action { implicit request =>
+    DB.localTx { implicit session =>
+      // リクエストの内容をバインド
+      userForm.bindFromRequest.fold(
+        // エラーの場合は編集画面に戻す
+        error => {
+          BadRequest(views.html.user.edit(error, Company.findAll(), authorities))
+        },
+        // OKの場合は更新を行い一覧画面にリダイレクトする
+        form => {
+          // ユーザ情報を更新
+          User.find(form.id.get).foreach { user =>
+            User.save(user.copy(name = form.name, email = form.email, authority = form.authority, companyId = form.companyId))
+          }
+          // 一覧画面にリダイレクト
+          Redirect(routes.UserController.list(None))
+        }
+      )
+    }
+  }
+```
+@[13](Users.save()はscalikejdbcGenによって自動生成されたメソッドで、UPDATEにあたります)
+
+---
+
+# (参考) INSERTとUPDATEをQueryDSLで書いてみる
+INSERTに対応するUsers.create()や、UPDATEに対応するUsers.save()など、ここでもscalikejdbcGenによって自動生成されたメソッドを使用していますが、これらをQueryDSLを使って書き直すと以下のようになります。
+
+```scala
+// INSERTをQueryDSLで書き直した場合
+val generatedKey = withSQL {
+  val column = Users.column
+  insert.into(Users).namedValues(
+    column.name -> form.name,
+    column.companyId -> form.companyId
+  )
+}.updateAndReturnGeneratedKey.apply()
+
+// UPDATEをQueryDSLで書き直した場合
+withSQL {
+  val column = Users.column
+  QueryDSL.update(Users).set(
+    column.name -> form.name,
+    column.companyId -> form.companyId
+  ).where.eq(column.id, user.id)
+}.update.apply()
+```
+
+---
+
+# 動作を確認してみよう
+ここまで実装したら、登録画面や編集画面からユーザ情報の登録、編集を行えることを確認しましょう。  
+ユーザ名を空欄や20文字以上で登録しようとするとエラーメッセージが表示され、バリデーションが効いていることも確認できるはずです。
+
+---
+
+# 削除処理の実装
+指定したIDのユーザをUSERSテーブルから削除し、一覧画面へリダイレクトします。
+
+---
+
+# Controllerの実装
+すでに一覧画面に「削除」ボタンは表示されているので、そこから呼び出されるコントローラのメソッドのみ実装します。
+
+```scala
+  // 削除処理の実行
+  def remove(id: Long) = Action { implicit request =>
+    // ユーザーの削除
+    User.find(id).foreach(user => User.destroy(user))
+
+    // 一覧画面へリダイレクト
+    Redirect(routes.UserController.list(None))
+  }
+```
+@[4](`Users.destroy()` もscalikejdbcGenで自動生成されたメソッドです)
+
+---
+
+# (参考) DELETEをQueryDSLで書き直す
+`Users.destroy()` をQueryDSLで書き直すと以下のようになります。
+
+```scala
+withSQL {
+  delete.from(Users).where.eq(Users.column.id, entity.id)
+}.update.apply()
+```
+
+---
+
+# 動作を確認する
+一覧画面から「削除」をクリックしてユーザ情報が削除されることを確認してみましょう。
+
+---
 
 # build.sbtを編集してみよう
 さらに依存関係を追加してみましょう。

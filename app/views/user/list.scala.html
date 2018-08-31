@@ -17,6 +17,8 @@
           <tr>
             <th>ID</th>
             <th>名前</th>
+            <th>Email</th>
+            <th>ユーザー種別</th>
             <th>&nbsp;</th>
           </tr>
         </thead>
@@ -26,6 +28,8 @@
             <tr>
               <td>@user.id</td>
               <td><a href="@routes.UserController.edit(Some(user.id))">@user.name</a></td>
+              <td>@user.email</td>
+              <td>@user.authority</td>
               <td>@helper.form(CSRF(routes.UserController.remove(user.id))){
                 <input type="submit" value="削除" class="btn btn-danger btn-xs"/>
               }
@@ -35,5 +39,4 @@
         </tbody>
       </table>
     </div>
-
   }

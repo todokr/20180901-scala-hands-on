@@ -11,11 +11,11 @@ class UserSpec extends fixture.FlatSpec with Matchers with AutoRollback {
   behavior of "User"
 
   it should "find by primary keys" in { implicit session =>
-    val maybeFound = User.find(1L, 1L)
+    val maybeFound = User.find(1L)
     maybeFound.isDefined should be(true)
   }
   it should "find by where clauses" in { implicit session =>
-    val maybeFound = User.findBy(sqls.eq(u.companyId, 1L))
+    val maybeFound = User.findBy(sqls.eq(u.id, 1L))
     maybeFound.isDefined should be(true)
   }
   it should "find all records" in { implicit session =>
@@ -27,11 +27,11 @@ class UserSpec extends fixture.FlatSpec with Matchers with AutoRollback {
     count should be >(0L)
   }
   it should "find all by where clauses" in { implicit session =>
-    val results = User.findAllBy(sqls.eq(u.companyId, 1L))
+    val results = User.findAllBy(sqls.eq(u.id, 1L))
     results.size should be >(0)
   }
   it should "count by where clauses" in { implicit session =>
-    val count = User.countBy(sqls.eq(u.companyId, 1L))
+    val count = User.countBy(sqls.eq(u.id, 1L))
     count should be >(0L)
   }
   it should "create new record" in { implicit session =>
@@ -49,7 +49,7 @@ class UserSpec extends fixture.FlatSpec with Matchers with AutoRollback {
     val entity = User.findAll().head
     val deleted = User.destroy(entity)
     deleted should be(1)
-    val shouldBeNone = User.find(1L, 1L)
+    val shouldBeNone = User.find(1L)
     shouldBeNone.isDefined should be(false)
   }
   it should "perform batch insert" in { implicit session =>

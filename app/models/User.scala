@@ -35,9 +35,9 @@ object User extends SQLSyntaxSupport[User] {
 
   override val autoSession = AutoSession
 
-  def find(companyId: Long, id: Long)(implicit session: DBSession = autoSession): Option[User] = {
+  def find(id: Long)(implicit session: DBSession = autoSession): Option[User] = {
     withSQL {
-      select.from(User as u).where.eq(u.companyId, companyId).and.eq(u.id, id)
+      select.from(User as u).where.eq(u.id, id)
     }.map(User(u.resultName)).single.apply()
   }
 
@@ -117,13 +117,13 @@ object User extends SQLSyntaxSupport[User] {
         column.email -> entity.email,
         column.authority -> entity.authority,
         column.companyId -> entity.companyId
-      ).where.eq(column.companyId, entity.companyId).and.eq(column.id, entity.id)
+      ).where.eq(column.id, entity.id)
     }.update.apply()
     entity
   }
 
   def destroy(entity: User)(implicit session: DBSession = autoSession): Int = {
-    withSQL { delete.from(User).where.eq(column.companyId, entity.companyId).and.eq(column.id, entity.id) }.update.apply()
+    withSQL { delete.from(User).where.eq(column.id, entity.id) }.update.apply()
   }
 
 }
