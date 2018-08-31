@@ -488,6 +488,8 @@ class UserController @Inject()(
 }
 ```
 
+---
+
 # DatabaseConfigProviderとHasDatabaseConfigProvider
 
 ```scala
@@ -505,18 +507,18 @@ class UserController @Inject()(
 ---
 
 # ユーザー一覧画面にアクセスしてみる
-再度、 `http://localhost:9000/user/list` にアクセスしてみましょう。下記のように一覧画面が表示されればOKです��
+再度、 `http://localhost:9000/user/list` にアクセスしてみましょう。下記のように一覧画面が表示されればOKです👍
 
-![ユーザー一覧](slides/user-list.png)
+![ユーザー一覧](slide/user-list.png)
 
 ---
 
 
 # 機能を追加してみよう
-- 一覧ページに、会員種別でフィルターする機能をつける
-- 会員種別ごとの人数が見られるページを作ってみよう
+- 一覧ページに、ユーザー種別でフィルターする機能をつける
+- ユーザー種別ごとの人数が見られるページを作る
 
-そのためにまず「コレクション操作」を学びましょう
+そのためにまず「コレクション操作」を学びましょう👍
 
 ---
 
