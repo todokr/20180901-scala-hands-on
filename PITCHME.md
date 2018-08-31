@@ -57,7 +57,7 @@
 ---
 
 # 今回作るアプリケーション
-![Flow](slide/flow.jpg)
+![Flow](slide/flow.png)
 
 ---
 
@@ -273,6 +273,10 @@ POST    /user/remove/:id            controllers.UserController.remove(id: Long)
 
 # MySQLの準備をする(1)
 まずはユーザー一覧画面を実装していきましょう。しかしその前にデータベースを用意する必要があります。
+
+---
+
+# MySQLの準備をする(2)
 今回はMySQLをDockerから使います。プロジェクトのルートディレクトリに下記のような `docker-compose.yml` を用意します。
 
 ```yaml
@@ -300,10 +304,9 @@ services:
 @[6](dockerhubの公式のMySQLのイメージを使う。versionは5.7)
 @[19](MySQLの初回起動時に実行するSQLを指定。この場合、 `mysql/` 以下のSQLを実行する)
 
-
 ---
 
-# MySQLの準備をする(2)
+# MySQLの準備をする(3)
 次に、MySQLの初回起動時に実行するSQLを用意します。
 下記のような `mysql/init.sql` というSQLファイルを作成します。
 
@@ -374,7 +377,7 @@ COMMIT;
 
 ---
 
-# MySQLの準備をする(3)
+# MySQLの準備をする(4)
 下記のようにSQLが叩けるようになったら準備OKです👍
 
 ```
@@ -429,7 +432,7 @@ object SlickModelGen extends App {
 ```
 @[5](`App` トレイトを継承したObjectは単体で実行できます)
 
-___
+---
 
 # Modelを自動生成する
 コードが用意できたらModelを自動生成してみましょう。
