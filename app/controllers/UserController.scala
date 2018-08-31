@@ -18,11 +18,12 @@ class UserController @Inject()(
 
   // 一覧画面の表示
   def list(authority: Option[String]) = Action { implicit request =>
-    val users = Await.result(db.run(Tables.User.sortBy(_.userId).result), Duration.Inf)
 
-    val result = authority.map { a =>
-      users.filter(_.authority == a.toUpperCase)
-    }.getOrElse(users)
+    val dbAction = authority.map { a =>
+      Tables.User.filter(_.authority === a.bind).sortBy(_.userId).result
+    }.getOrElse(Tables.User.sortBy(_.userId).result)
+
+    val result = Await.result(db.run(dbAction), Duration.Inf)
 
     Ok(views.html.user.list(result))
   }
