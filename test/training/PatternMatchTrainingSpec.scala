@@ -2,8 +2,8 @@ package training
 
 import org.scalatest.{ MustMatchers, WordSpec }
 
-// $ testOnly training.CaseMatchTrainingSpec
-class CaseMatchTrainingSpec extends WordSpec with MustMatchers {
+// $ testOnly training.PatternMatchTrainingSpec
+class PatternMatchTrainingSpec extends WordSpec with MustMatchers {
 
   /**
     * FIXME
