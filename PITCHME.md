@@ -760,6 +760,152 @@ val where = authority.map(a => sqls"${u.authority} = $a").getOrElse(sqls"")
 
 ---
 
+# ユーザ登録・編集画面の実装
+リクエストパラメータにIDが指定されているかどうかに応じて以下の処理を行います。
+
+- `/user/edit` ⇒ 新規登録画面を表示します。
+- `/user/edit?id=XXX` ⇒ USERSテーブルを検索し、該当のユーザ情報を初期表示した編集画面を表示します。
+
+---
+
+# Formの実装
+画面からの入力値を受け取るための `Form` を定義します。Formは必ずしもコントローラに定義する必要はないのですが、コントローラでの処理に強く依存するため特に理由がない限りコントローラクラスのコンパニオンオブジェクトに定義するとよいでしょう。
+
+ここでは `UserController` と同じソースファイルに以下のようなコンパニオンオブジェクトを追加します。
+
+```
+object UserController {
+  // フォームの値を格納するケースクラス
+  case class UserForm(id: Option[Long], name: String, companyId: Option[Int])
+
+  // formから送信されたデータ ⇔ ケースクラスの変換を行う
+  val userForm = Form(
+    mapping(
+      "id"        -> optional(longNumber),
+      "name"      -> nonEmptyText(maxLength = 20),
+      "companyId" -> optional(number)
+    )(UserForm.apply)(UserForm.unapply)
+  )
+}
+```
+
+---
+
+# コンパニオンオブジェクト
+
+- classやtraitと同じファイル内に同じ名前で定義されたobjectのこと
+- コンパニオンオブジェクトと対応するclassやtraitは互いにprivateなメンバーにアクセスできる
+- classやtraitで使用する共通的なメソッドやクラス等を括り出したりするのに使う
+
+---
+
+# Viewの実装
+続いて `views.user` パッケージに `edit.scala.html` を実装します。引数にはFormのインスタンスと、プルダウンで選択する会社情報を格納した `Seq` を受け取ります。
+
+```html
+@(userForm: Form[controllers.UserController.UserForm], companies: Seq[models.Company])(implicit request: MessagesRequestHeader)
+
+@import helper._
+
+@main("ユーザ作成") {
+
+  @* IDがある場合は更新処理、ない場合は登録処理を呼ぶ *@
+  @form(CSRF(userForm("id").value.map(x => routes.UserController.update).getOrElse(routes.UserController.create)), 'class -> "container", 'role -> "form") {
+    <fieldset>
+      <div class="form-group">
+      @inputText(userForm("name"), '_label -> "名前")
+      </div>
+      <div class="form-group">
+      @select(userForm("companyId"), companies.map(x => x.id.toString -> x.name).toSeq, '_label -> "会社", '_default -> "-- 会社名を選択してください --")
+      </div>
+      @* IDがある場合（更新の場合）のみhiddenを出力する *@
+      @userForm("id").value.map { value =>
+        <input type="hidden" name="id" value="@value" />
+      }
+      <div>
+        <input type="submit" value="保存" class="btn btn-success">
+      </div>
+    </fieldset>
+  }
+
+}
+```
+
+---
+
+# Controllerの実装
+最後にUserControllerの `edit` メソッドを実装します。引数idが指定されていた場合は空のForm、指定されていた場合はForm#fillメソッドでFormに初期表示する値をセットしたうえでテンプレートを呼び出すようにします。
+
+
+```scala
+class UserController @Inject()(components: MessagesControllerComponents)
+  extends MessagesAbstractController(components) {
+
+  import UserController._ // 追加
+
+  private val u = User.syntax("u")
+  private val c = Company.syntax("c") // 追加
+
+(中略)
+
+  // 編集画面の表示
+  def edit(id: Option[Long]) = Action { implicit request =>
+    DB.readOnly { implicit session =>
+      val form = id match {
+        // IDが渡されなかった場合は新規登録フォーム
+        case None => userForm
+        // IDからユーザ情報を1件取得してフォームに詰める
+        case Some(id) => User.findBy(sqls"${u.id} = $id") match {
+          case Some(user) => userForm.fill(UserForm(Some(user.id), user.name, user.companyId))
+          case None => userForm
+        }
+      }
+
+      // プルダウンに表示する会社のリストを取得
+      val companies = withSQL {
+        select.from(Company as c).orderBy(c.id.asc)
+      }.map(Company(c.resultName)).list().apply()
+
+      Ok(views.html.user.edit(form, companies))
+    }
+  }
+```
+@[16](idが指定されていなかった場合（Noneの場合）は新規登録用の空フォーム)
+@[18~21](idが指定されていた場合（Some(id)の場合）は更新用フォームを生成)
+@[25~27](`User.findBy(...)で更新用フォームに設定するためのユーザ情報をDBから取得)
+
+---
+
+# 自動生成されたメソッドとQueryDSL
+
+`User.findBy(...)` はscalikejdbcGenで自動生成された検索用メソッドです。このような基本的なCRUD処理はQueryDSLを使わなくても自動生成されたメソッドで実装することができます。
+
+ちなみにこのメソッドをQueryDSLで書き直すと以下のようになります。
+
+```
+// 1件検索をQueryDSLで書き直した場合
+withSQL {
+  select.from(Users as u).where.eq(u.id, id)
+}.map(Users(u.resultName)).single.apply()
+```
+
+---
+
+# ブラウザから確認
+ここまで実装したらブラウザで一覧画面から新規作成やユーザ名のリンクをクリックし、以下のように登録画面と編集画面が表示されることを確認します。
+
+![register](slide/register_form.png)
+![edit](slide/edit_form.png)
+
+---
+
+# 登録・更新処理の実装
+
+入力値のバリデーションを行い、エラーの有無に応じて以下の処理を行います。
+
+- エラーあり ⇒ フォームにエラー情報をセットして入力フォームに戻ります。
+- エラーなし ⇒ DBへの登録・更新処理を行い、一覧画面へリダイレクトします。
+
 # build.sbtを編集してみよう
 さらに依存関係を追加してみましょう。
 jQueryとBootstrapを依存関係に追加します。
