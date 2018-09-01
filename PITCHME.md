@@ -1,6 +1,9 @@
 # Scala Hands-on
 ### 現場で活きるスキルをCRUDアプリケーション開発で学ぶ
 
+2018.9.1  
+https://gitpitch.com/todokr/20180901-scala-hands-on#/
+
 ---
 
 # 今日のゴール
@@ -17,7 +20,7 @@
 
 ## 岩松 竜也
 
-- 2015年新卒入社
+
 
 ---
 
@@ -683,6 +686,13 @@ DBのuserテーブルのAUTHORITYカラムには「ADMIN」「EDITOR」「READON
 
 ---
 
+# そこでOption[String]ですよ
+`?authority=XXX` のクエリパラメータはURLに含まれることもあれば、含まれないこともあります。  
+ということは、「authorityの値は存在するかもしれないし、しないかもしれない」を表現する必要があるわけです。  
+こういう場面では情報をOption型で表現するのが適切です👍
+
+---
+
 # クエリパラメータをControllerで受け取れるようにする(1)
 フィルタリングを行うためには、 `http://localhost/user/list?authority=admin` の `?authority=admin` のようにクエリパラメータとして渡している情報をControllerで受け取れるようにする必要があります。
 まずは `conf/route` のユーザー一覧用ルーティングを下記のように修正します。
@@ -706,33 +716,6 @@ GET  /user/list  controllers.UserController.list(authority: Option[String] ?= No
 ```
 
 これで `?authority=XXX` とリクエストが来た場合に、Controllerで `XXX` を受け取れるようになります。
-
----
-
-# Option[String]の謎を解く
-`Option[String]` という見慣れない型について見ていきましょう。  
-`?authority=XXX` のクエリパラメータはURLに含まれることもあれば、含まれないこともあります。  
-ということは、「authorityの値は存在するかもしれないし、しないかもしれない」を表現する必要があるわけです。
-
----
-
-# ないときはnull
-- Javaでよくあるのは「ないときはnull」
-- しかし、これはバグの温床
-- 呼び出し元はnullチェック必要?必要じゃない?
-- NullPointerException
-
----
-
-# 「あるかもしれないし、ないかもしれない」を表す型がOption
-- Optionとは「あるかもしれないし、ないかもしれない」を表す型
-- `Option` の実体は `Some` もしくは `None`
-
----
-
-# Optionに入門する
-
-training time!
 
 ---
 
