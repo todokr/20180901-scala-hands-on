@@ -20,7 +20,9 @@ https://gitpitch.com/todokr/20180901-scala-hands-on#/
 
 ## 岩松 竜也
 
-
+- 戦略人事を実現するHRMOS採用管理 アプリケーションエンジニア
+- 2015年新卒入社
+- Scala好きです😍
 
 ---
 
