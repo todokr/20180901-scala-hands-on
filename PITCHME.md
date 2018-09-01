@@ -96,10 +96,10 @@ Scalaの開発元であるLightbend社は、Scala初学者が最初にマスタ�
 # WAF & DB Access
 
 ## Web Application Framework
-- [PlayFramework 2.6.x](https://www.playframework.com/)
+[PlayFramework 2.6.x](https://www.playframework.com/)
 
 ## DB Access Library
-- [ScalikeJDBC 3.2.x](http://scalikejdbc.org/)
+[ScalikeJDBC 3.2.x](http://scalikejdbc.org/)
 
 ---
 
