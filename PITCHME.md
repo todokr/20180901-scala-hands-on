@@ -75,6 +75,7 @@ Scalaの開発元であるLightbend社は、Scala初学者が最初にマスタ�
 - ケースクラス
 
 この3つについてがっつり学びます！
+https://gist.github.com/iwamatsu0430/6e7e9499597fc7b58f592d6aa522e4f8
 
 ---
 
