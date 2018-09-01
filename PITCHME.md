@@ -672,9 +672,9 @@ DBのuserテーブルのAUTHORITYカラムには「ADMIN」「EDITOR」「READON
 アプリケーションを改修し、一覧画面において特定のユーザーだけを表示できるようにしてみましょう。
 
 具体的には、
-- `http://localhost/user/list?authority=admin` のときは、「ADMIN」のユーザーだけの一覧を表示
-- `http://localhost/user/list?authority=editor` のときは、「EDITOR」のユーザーだけの一覧を表示
-- `http://localhost/user/list?authority=readonly` のときは、「READONLY」のユーザーだけの一覧を表示
+- `/user/list?authority=admin` のときは、「ADMIN」のユーザーだけの一覧を表示
+- `/user/list?authority=editor` のときは、「EDITOR」のユーザーだけの一覧を表示
+- `/user/list?authority=readonly` のときは、「READONLY」のユーザーだけの一覧を表示
 - クエリパラメータがないときは、全ユーザー種別の一覧を表示
 
 とします。
