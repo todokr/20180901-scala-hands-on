@@ -403,17 +403,10 @@ CREATE TABLE IF NOT EXISTS `user` (
   `email` VARCHAR(255) NOT NULL,
   `authority` VARCHAR(45) NOT NULL,
   `company_id` BIGINT NOT NULL,
-  PRIMARY KEY (`id`, `company_id`),
-  CONSTRAINT `fk_user_company`
-    FOREIGN KEY (`company_id`)
-    REFERENCES `company` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
 CREATE UNIQUE INDEX `id_unique` ON `user` (`id` ASC);
-
-CREATE INDEX `fk_user_company_idx` ON `user` (`company_id` ASC);
 
 -- -----------------------------------------------------
 -- Data for table `company`
